@@ -1,1 +1,1 @@
-https://loot-link.com/s?I6Cb3ONn
+https://lootdest.org/s?h34Wvbjr
