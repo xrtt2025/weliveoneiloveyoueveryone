@@ -51,6 +51,7 @@ _G.safeGet = function(i,...) for _,n in ipairs({...}) do if not i or not i:WaitF
 _G.touch = function(e) if e then local h=_G.getHumanoidRootPart() if h then local s=pcall(function() firetouchinterest(h,e,0) task.wait() firetouchinterest(h,e,1) end) if not s then warn("Touch function failed - firetouchinterest may not be available") end end end end
 task.defer(function() workspace.ChildAdded:Connect(function(c) if c:IsA("Model") then task.wait(1) if c:GetAttribute("SEED_GIVEN") and c:GetAttribute("OWNER")==_G.localPlayer.Name then task.wait(2) local p=c:FindFirstChildOfClass("Part") if p then _G.touch(p) end end end end) end)
 
+_G.debounce = false
 
 --// AD here for event checking..
 _G.getExitButton = function(g, p) local c=g for _,s in ipairs(p) do task.wait() c=c:WaitForChild(s,10) if not c then return nil end end return c end
