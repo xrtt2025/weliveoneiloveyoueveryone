@@ -54,7 +54,17 @@ task.defer(function() workspace.ChildAdded:Connect(function(c) if c:IsA("Model")
 
 --// AD here for event checking..
 _G.checkEventStatus = function() local f=false if _G.eventList.Visible then for _,v in ipairs(_G.eventList:FindFirstChild("List"):GetChildren()) do if v:IsA("Frame") and v.Visible and _G.ifEventActiveDoNotCollect[v.Name] then f=true break end end end _G.isEventActive=f return f end
-_G.checkEventStatusDebounced = function() if _G.debounce then return end _G.debounce=true task.spawn(function() _G.checkEventStatus() task.wait() _G.debounce=false end) end
+task.defer(function()
+    _G.checkEventStatusDebounced = function()
+        if _G.debounce then return end
+        _G.debounce = true
+        task.spawn(function()
+            _G.checkEventStatus()
+            task.wait()
+            _G.debounce = false
+        end)
+    end
+end)
 _G.GetPlayerFarm = function(P) if not P then return end for _,F in ipairs(_G.Farms:GetChildren()) do local I=F:WaitForChild("Important",60) if I then local D=I:WaitForChild("Data",60) if D then local O=D:WaitForChild("Owner",60) if O and O.Value==P then return F,I,I:WaitForChild("Plants_Physical",60),I:WaitForChild("Objects_Physical",60) end end end end end
 
 _G.refreshFruitsList = function(d,p) Farm,ImportantFolder,Plants_Physical,Objects_Physical=_G.GetPlayerFarm(p) local l={} if not Plants_Physical then warn("Plants_Physical folder not found") return end for _,v in ipairs(Plants_Physical:GetChildren()) do if v:IsA("Model") then local n=v.Name if not table.find(l,n) then table.insert(l,n) end end end table.sort(l) d:Refresh(l) end
