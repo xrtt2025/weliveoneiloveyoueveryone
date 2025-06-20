@@ -7,7 +7,7 @@ _G.extractDigitsFromText = function(text) return tonumber(text:match("%d+")) or 
 _G.getPlayerMoney = function() local player = _G.getService("Players").LocalPlayer return (player and player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Sheckles") and player.leaderstats.Sheckles.Value) or 0 end
 _G.tweenService        = _G.getService("TweenService")
 _G.runService          = _G.getService("RunService")
-_G.players             = _G.getService("Players")
+players                = _G.getService("Players")
 _G.userInputService    = _G.getService("UserInputService")
 _G.guiService          = _G.getService("GuiService")
 _G.replicatedStorage   = _G.getService("ReplicatedStorage")
@@ -19,17 +19,17 @@ _G.httpService         = _G.getService("HttpService")
 _G.teleportService     = _G.getService("TeleportService")
 _G.marketplaceService  = _G.getService("MarketplaceService")
 _G.collectionService   = _G.getService("CollectionService")
-_G.localPlayer         = _G.players.LocalPlayer
-_G.playerGui           = _G.localPlayer:WaitForChild("PlayerGui", 10)
+localPlayer            = players.LocalPlayer
+_G.playerGui           = localPlayer:WaitForChild("PlayerGui", 10)
 _G.camera              = workspace.CurrentCamera
-_G.localPlayerBag      = _G.localPlayer.Backpack
+_G.localPlayerBag      = localPlayer.Backpack
 _G.ByteNetReliable     = _G.replicatedStorage:WaitForChild("ByteNetReliable", 10)
 _G.harvestBuffer       = buffer.fromstring("\1\1\0\1")
 _G.Farms               = workspace:FindFirstChild("Farm")
 
 if not _G.runService or not _G.players or not _G.lighting then warn("⚠️ Critical services failed to load") return end
-_G.getCharacter = function() return _G.localPlayer and (_G.localPlayer.Character or _G.localPlayer.CharacterAdded:Wait()) end
-_G.getCurrentCharacter = function() return _G.localPlayer and _G.localPlayer.Character end
+_G.getCharacter = function() return localPlayer and (localPlayer.Character or localPlayer.CharacterAdded:Wait()) end
+_G.getCurrentCharacter = function() return localPlayer and localPlayer.Character end
 _G.getHumanoidRootPart = function() local char = _G.getCurrentCharacter() return char and char:FindFirstChild("HumanoidRootPart") end
 _G.getHumanoid = function() local char = _G.getCurrentCharacter() return char and char:FindFirstChild("Humanoid") end
 _G.isShowNotification = true
