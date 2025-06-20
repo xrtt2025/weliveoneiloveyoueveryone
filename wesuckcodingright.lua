@@ -52,8 +52,12 @@ _G.shops = {
 _G.defaultExitPath = { "Frame", "Frame", "ExitButton" }
 
 _G.toggleShop = function(name)
+print(name)
     local shopData = _G.shops[name]
     local shop = shopData and shopData.gui
+
+print(shopData.gui)
+
 
     if not shop then
         _G.notify("Event Shop Ended - " .. name, 3, "check")
@@ -85,7 +89,7 @@ _G.toggleShop = function(name)
     end
 
     -- Hook up the exit button
-    local exitButton = getExitButton(shop, shopData.exitPath or _G.defaultExitPath)
+    local exitButton = _G.getExitButton(shop, shopData.exitPath or _G.defaultExitPath)
     if exitButton then
         _G.exitConnections[name] = exitButton.Activated:Connect(function()
             shop.Enabled = false
