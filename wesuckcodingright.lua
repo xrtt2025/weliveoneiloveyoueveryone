@@ -39,14 +39,16 @@ _G.unequip_tool = function() for _,c in ipairs(character:GetChildren()) do if c:
 _G.GetCrops = function() local c,H={},_G.GetTool(character) if not _G.localPlayerBag or #_G.localPlayerBag:GetChildren()==0 then return c end for _,t in ipairs(_G.localPlayerBag:GetChildren()) do if t:GetAttribute("b")=="j" then table.insert(c,t) end end if H and H:GetAttribute("b")=="j" and not table.find(c,H) then table.insert(c,H) end return c end
 _G.getExitButton=function(g,p) local c=g for _,s in ipairs(p) do task.wait() c=c:WaitForChild(s,10) if not c then return nil end end return c end
 
+local localPlayer    = _G.players.LocalPlayer
+playerGui      = localPlayer:WaitForChild("PlayerGui", 10)
 
 _G.shops = { 
-    Seed = { gui = _G.playerGui:FindFirstChild("Seed_Shop") },
-    BeeEvent = { gui = _G.playerGui:FindFirstChild("HoneyEventShop_UI") },
-    Cosmetic = { gui = _G.playerGui:FindFirstChild("CosmeticShop_UI"), exitPath = { "Main", "Holder", "Header", "ExitButton" } },
-    Gear = { gui = _G.playerGui:FindFirstChild("Gear_Shop") },
-    Daily = { gui = _G.playerGui:FindFirstChild("DailyQuests_UI") },
-    Event = { gui = _G.playerGui:FindFirstChild("EventShop_UI") }
+    Seed = { gui = playerGui:FindFirstChild("Seed_Shop") },
+    BeeEvent = { gui = playerGui:FindFirstChild("HoneyEventShop_UI") },
+    Cosmetic = { gui = playerGui:FindFirstChild("CosmeticShop_UI"), exitPath = { "Main", "Holder", "Header", "ExitButton" } },
+    Gear = { gui = playerGui:FindFirstChild("Gear_Shop") },
+    Daily = { gui = playerGui:FindFirstChild("DailyQuests_UI") },
+    Event = { gui = playerGui:FindFirstChild("EventShop_UI") }
 }
 
 _G.defaultExitPath = { "Frame", "Frame", "ExitButton" }
