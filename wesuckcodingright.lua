@@ -51,13 +51,26 @@ _G.safeGet = function(i,...) for _,n in ipairs({...}) do if not i or not i:WaitF
 _G.touch = function(e) if e then local h=_G.getHumanoidRootPart() if h then local s=pcall(function() firetouchinterest(h,e,0) task.wait() firetouchinterest(h,e,1) end) if not s then warn("Touch function failed - firetouchinterest may not be available") end end end end
 task.defer(function() workspace.ChildAdded:Connect(function(c) if c:IsA("Model") then task.wait(1) if c:GetAttribute("SEED_GIVEN") and c:GetAttribute("OWNER")==_G.localPlayer.Name then task.wait(2) local p=c:FindFirstChildOfClass("Part") if p then _G.touch(p) end end end end) end)
 
-_G.debounce = false
 
 --// AD here for event checking..
 _G.getExitButton = function(g, p) local c=g for _,s in ipairs(p) do task.wait() c=c:WaitForChild(s,10) if not c then return nil end end return c end
 _G.toggleShop    = function(n) local d,s=_G.GUIs[n],_G.GUIs[n] and _G.GUIs[n].gui if not s then _G.notify("Event Shop Ended - "..n,3,"check") warn("[toggleShop] GUI does not exist for shop:",n) return end for on,od in pairs(_G.GUIs) do if on~=n and od.gui and od.gui.Enabled then od.gui.Enabled=false _G.notify(on.." closed",2,"check") task.wait(0.05) end end if s.Enabled then s.Enabled=false _G.notify(n.." closed",3,"check") return end s.Enabled=true _G.notify(n.." opened",3,"check") if _G.exitConnections[n] then pcall(function() _G.exitConnections[n]:Disconnect() end) end local b=_G.getExitButton(s,d.exitPath or _G.defaultExitPath) if b then _G.exitConnections[n]=b.Activated:Connect(function() s.Enabled=false _G.notify(n.." closed",3,"check") end) else warn("[toggleShop] No exit button found for shop:",n) end end
 _G.checkEventStatus = function() local f=false if _G.eventList.Visible then for _,v in ipairs(_G.eventList:FindFirstChild("List"):GetChildren()) do if v:IsA("Frame") and v.Visible and _G.ifEventActiveDoNotCollect[v.Name] then f=true break end end end _G.isEventActive=f return f end
-_G.checkEventStatusDebounced = function() if _G.debounce then return end _G.debounce=true task.spawn(function() _G.checkEventStatus() task.wait() _G.debounce=false end) end
+_G.checkEventStatusDebounced = function() 
+    if not _G.eventList or not _G.ifEventActiveDoNotCollect then
+        warn("⚠️ Event system not initialized yet")
+        return false
+    end
+    
+    if _G.debounce then return end 
+    _G.debounce = true 
+    task.spawn(function() 
+        _G.checkEventStatus() 
+        task.wait() 
+        _G.debounce = false 
+    end) 
+end
+
 _G.GetPlayerFarm = function(P) if not P then return end for _,F in ipairs(_G.Farms:GetChildren()) do local I=F:WaitForChild("Important",60) if I then local D=I:WaitForChild("Data",60) if D then local O=D:WaitForChild("Owner",60) if O and O.Value==P then return F,I,I:WaitForChild("Plants_Physical",60),I:WaitForChild("Objects_Physical",60) end end end end end
 
 _G.refreshFruitsList = function(d,p) Farm,ImportantFolder,Plants_Physical,Objects_Physical=_G.GetPlayerFarm(p) local l={} if not Plants_Physical then warn("Plants_Physical folder not found") return end for _,v in ipairs(Plants_Physical:GetChildren()) do if v:IsA("Model") then local n=v.Name if not table.find(l,n) then table.insert(l,n) end end end table.sort(l) d:Refresh(l) end
