@@ -53,51 +53,6 @@ task.defer(function() workspace.ChildAdded:Connect(function(c) if c:IsA("Model")
 
 
 --// AD here for event checking..
-_G.getExitButton = function(g,p) local c=g for _,s in ipairs(p) do c=c:FindFirstChild(s) if not c then return nil end end return c end
-_G.toggleShop = function(name)
-    local shopData = _G.GUIs[name]
-    local shop = shopData.gui
-    if not shop then
-        _G.notify("Event Shop Ended - " .. name, 3, "check")
-        warn("[toggleShop] GUI does not exist for shop:", name)
-        return
-    end
-
-    -- Close other shops
-    for k, v in pairs(_G.GUIs) do
-        if k ~= name and v.gui and v.gui.Enabled then
-            v.gui.Enabled = false
-            _G.notify(k .. " closed", 3, "check")
-            task.wait(0.1)
-        end
-    end
-
-    -- Toggle this shop
-    if shop.Enabled then
-        shop.Enabled = false
-        _G.notify(name .. " closed", 3, "check")
-        return
-    end
-
-    shop.Enabled = true
-    _G.notify(name .. " opened", 3, "check")
-
-    -- Disconnect old exit connection if exists
-    if _G.exitConnections[name] then
-        _G.exitConnections[name]:Disconnect()
-    end
-
-    -- Get the exit button and connect its `Activated` event
-    local exitButton = _G.getExitButton(shop, shopData.exitPath or _G.defaultExitPath)
-    if exitButton then
-        _G.exitConnections[name] = exitButton.Activated:Connect(function()
-            shop.Enabled = false
-            _G.notify(name .. " closed", 3, "check")
-        end)
-    else
-        warn("[toggleShop] No exit button found for shop:", name)
-    end
-end
 _G.checkEventStatus = function() local f=false if _G.eventList.Visible then for _,v in ipairs(_G.eventList:FindFirstChild("List"):GetChildren()) do if v:IsA("Frame") and v.Visible and _G.ifEventActiveDoNotCollect[v.Name] then f=true break end end end _G.isEventActive=f return f end
 _G.checkEventStatusDebounced = function() if _G.debounce then return end _G.debounce=true task.spawn(function() _G.checkEventStatus() task.wait() _G.debounce=false end) end
 _G.GetPlayerFarm = function(P) if not P then return end for _,F in ipairs(_G.Farms:GetChildren()) do local I=F:WaitForChild("Important",60) if I then local D=I:WaitForChild("Data",60) if D then local O=D:WaitForChild("Owner",60) if O and O.Value==P then return F,I,I:WaitForChild("Plants_Physical",60),I:WaitForChild("Objects_Physical",60) end end end end end
