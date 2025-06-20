@@ -37,3 +37,13 @@ _G.GetTool=function(c) return c and c:FindFirstChildOfClass("Tool") end
 task.defer(function() local function touch(e) if not e then return end local h=_G.getHumanoidRootPart() if not h then return end if not pcall(function() firetouchinterest(h,e,0) task.wait() firetouchinterest(h,e,1) end) then warn("Touch function failed - firetouchinterest may not be available") end end local p=_G.players.LocalPlayer workspace.ChildAdded:Connect(function(c) if not c:IsA("Model") then return end task.wait(1) if c:GetAttribute("SEED_GIVEN") and c:GetAttribute("OWNER")==p.Name then task.wait(2) local part=c:FindFirstChildOfClass("Part") if not part then return end touch(part) end end) end)
 _G.unequip_tool = function() for _,c in ipairs(character:GetChildren()) do if c:IsA("Tool") then c.Parent=_G.localPlayerBag end end end
 _G.GetCrops = function() local c,H={},_G.GetTool(character) if not _G.localPlayerBag or #_G.localPlayerBag:GetChildren()==0 then return c end for _,t in ipairs(_G.localPlayerBag:GetChildren()) do if t:GetAttribute("b")=="j" then table.insert(c,t) end end if H and H:GetAttribute("b")=="j" and not table.find(c,H) then table.insert(c,H) end return c end
+
+_G.getExitButton = function(gui, path)
+    local current = gui
+    for _, segment in ipairs(path) do
+        task.wait()
+        current = current:WaitForChild(segment, 10)
+        if not current then return nil end
+    end
+    return current
+end
