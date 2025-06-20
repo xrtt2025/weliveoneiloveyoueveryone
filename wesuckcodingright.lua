@@ -7,7 +7,6 @@ _G.extractDigitsFromText = function(text) return tonumber(text:match("%d+")) or 
 _G.getPlayerMoney = function() local player = _G.getService("Players").LocalPlayer return (player and player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Sheckles") and player.leaderstats.Sheckles.Value) or 0 end
 _G.tweenService        = _G.getService("TweenService")
 _G.runService          = _G.getService("RunService")
-_G.players                = _G.getService("Players")
 _G.userInputService    = _G.getService("UserInputService")
 _G.guiService          = _G.getService("GuiService")
 _G.replicatedStorage   = _G.getService("ReplicatedStorage")
@@ -19,7 +18,6 @@ _G.httpService         = _G.getService("HttpService")
 _G.teleportService     = _G.getService("TeleportService")
 _G.marketplaceService  = _G.getService("MarketplaceService")
 _G.collectionService   = _G.getService("CollectionService")
-_G.localPlayer            = _G.players.LocalPlayer
 _G.playerGui           = _G.localPlayer:WaitForChild("PlayerGui", 10)
 _G.camera              = workspace.CurrentCamera
 _G.localPlayerBag      = _G.localPlayer.Backpack
