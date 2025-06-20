@@ -37,12 +37,7 @@ _G.notify = function(m, d, i) if not _G.isShowNotification then return true end 
 _G.unequip_tool = function() for _, c in ipairs(_G.getCharacter():GetChildren()) do if c:IsA("Tool") then c.Parent = _G.localPlayerBag end end end
 
 _G.GetTool = function(character) return character and character:FindFirstChildOfClass("Tool") end
-_G.GetCrops = function() local Crops = {} local HoldingCrop = nil if not _G.localPlayerBag or #_G.localPlayerBag:GetChildren() == 0 then return Crops end HoldingCrop = _G.GetTool(character) for _, Tool in ipairs(_G.localPlayerBag:GetChildren()) do if Tool:GetAttribute("b") == "j" then table.insert(Crops, Tool) end end
-    if HoldingCrop and HoldingCrop:GetAttribute("b") == "j" and not table.find(Crops, HoldingCrop) then 
-        table.insert(Crops, HoldingCrop)
-    end
-    return Crops
-end
+_G.GetCrops = function() local c={},h=nil if not _G.localPlayerBag or #_G.localPlayerBag:GetChildren()==0 then return c end h=_G.GetTool(character) for _,t in ipairs(_G.localPlayerBag:GetChildren()) do if t:GetAttribute("b")=="j" then table.insert(c,t) end end if h and h:GetAttribute("b")=="j" and not table.find(c,h) then table.insert(c,h) end return c end
 
 _G.getPlayerData = function() local data = _G.dataService:GetData() return data, data and data.Sheckles, data and data.SpecialCurrency and data.SpecialCurrency.Honey end
 _G.getStock = function(name) local data  = _G.dataService:GetData() return data and data[name] and data[name].Stocks or {} end
@@ -59,44 +54,35 @@ task.defer(function() workspace.ChildAdded:Connect(function(c) if c:IsA("Model")
 
 --// AD here for event checking..
 _G.getExitButton = function(g, p) local c=g for _,s in ipairs(p) do task.wait() c=c:WaitForChild(s,10) if not c then return nil end end return c end
-_G.toggleShop    = function(n) local d,s=shops[n],shops[n] and shops[n].gui if not s then _G.notify("Event Shop Ended - "..n,3,"check") warn("[toggleShop] GUI does not exist for shop:",n) return end for on,od in pairs(shops) do if on~=n and od.gui and od.gui.Enabled then od.gui.Enabled=false _G.notify(on.." closed",2,"check") task.wait(0.05) end end if s.Enabled then s.Enabled=false _G.notify(n.." closed",3,"check") return end s.Enabled=true _G.notify(n.." opened",3,"check") if _G.exitConnections[n] then pcall(function() _G.exitConnections[n]:Disconnect() end) end local b=_G.getExitButton(s,d.exitPath or _G.defaultExitPath) if b then _G.exitConnections[n]=b.Activated:Connect(function() s.Enabled=false _G.notify(n.." closed",3,"check") end) else warn("[toggleShop] No exit button found for shop:",n) end end
+_G.toggleShop    = function(n) local d,s=_G.GUIs[n],_G.GUIs[n] and _G.GUIs[n].gui if not s then _G.notify("Event Shop Ended - "..n,3,"check") warn("[toggleShop] GUI does not exist for shop:",n) return end for on,od in pairs(_G.GUIs) do if on~=n and od.gui and od.gui.Enabled then od.gui.Enabled=false _G.notify(on.." closed",2,"check") task.wait(0.05) end end if s.Enabled then s.Enabled=false _G.notify(n.." closed",3,"check") return end s.Enabled=true _G.notify(n.." opened",3,"check") if _G.exitConnections[n] then pcall(function() _G.exitConnections[n]:Disconnect() end) end local b=_G.getExitButton(s,d.exitPath or _G.defaultExitPath) if b then _G.exitConnections[n]=b.Activated:Connect(function() s.Enabled=false _G.notify(n.." closed",3,"check") end) else warn("[toggleShop] No exit button found for shop:",n) end end
+_G.checkEventStatus = function() local f=false if _G.eventList.Visible then for _,v in ipairs(_G.eventList:FindFirstChild("List"):GetChildren()) do if v:IsA("Frame") and v.Visible and _G.ifEventActiveDoNotCollect[v.Name] then f=true break end end end _G.isEventActive=f return f end
+_G.checkEventStatusDebounced = function() if _G.debounce then return end _G.debounce=true task.spawn(function() _G.checkEventStatus() task.wait() _G.debounce=false end) end
+_G.GetPlayerFarm = function(P) if not P then return end for _,F in ipairs(_G.Farms:GetChildren()) do local I=F:WaitForChild("Important",60) if I then local D=I:WaitForChild("Data",60) if D then local O=D:WaitForChild("Owner",60) if O and O.Value==P then return F,I,I:WaitForChild("Plants_Physical",60),I:WaitForChild("Objects_Physical",60) end end end end end
 
---[[
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G
-_G]]
+_G.refreshFruitsList = function(d,p) Farm,ImportantFolder,Plants_Physical,Objects_Physical=_G.GetPlayerFarm(p) local l={} if not Plants_Physical then warn("Plants_Physical folder not found") return end for _,v in ipairs(Plants_Physical:GetChildren()) do if v:IsA("Model") then local n=v.Name if not table.find(l,n) then table.insert(l,n) end end end table.sort(l) d:Refresh(l) end
+_G.refreshPlayerList = function(d) local l={} for _,p in ipairs(game.Players:GetPlayers()) do if p~=_G.localPlayer then table.insert(l,p.Name) end end table.sort(l) d:Refresh(l) end
+_G.parseTargetFruits = function(d) local u={},f={} for _,v in ipairs(d.Value or {}) do local n=v:match("^%s*(.-)%s*$"):lower() if n~="" then u[n]=true end end for k in pairs(u) do table.insert(f,k) end return f end
+_G.hasAnyMutation = function(o,m) if not o or not o.GetAttributes then return false end for a in pairs(o:GetAttributes()) do local l=string.lower(a) if type(m)=="table" then for k,v in pairs(m) do if (v==true and l==string.lower(k)) or (type(k)=="number" and l==string.lower(v)) then return true end end end end return false end
+
+_G.collectSelectedFruit = function() local n=false while _G.autoFarmRunning do if _G.checkEventStatus() then if not n then _G.notify("Paused: A selected event is active. Waiting...",3,"triangle-alert") n=true end while _G.checkEventStatus() and _G.autoFarmRunning do task.wait(1) end if _G.autoFarmRunning then _G.notify("Resuming selected fruit collection - event ended",2,"check") n=false end end if not _G.autoFarmRunning then break end local c=true local t={} if c then t=_G.parseTargetFruits(_G.fruitDropdown) if #t==0 then _G.notify("No fruits selected",3,"check") c=false end end if not c then task.wait(2) else Farm,ImportantFolder,Plants_Physical,Objects_Physical=_G.GetPlayerFarm(localPlayer.Name) for _,p in ipairs(Plants_Physical:GetChildren()) do if not _G.autoFarmRunning or _G.checkEventStatus() then break end if table.find(t,p.Name:lower()) then local f=p:FindFirstChild("Fruits") if f then for _,x in ipairs(f:GetChildren()) do if not _G.autoFarmRunning or _G.checkEventStatus() then break end if not _G.hasAnyMutation(x,_G.ignoreMutation) and not x:GetAttribute("Favorited") then pcall(function() _G.ByteNetReliable:FireServer(_G.harvestBuffer,{x}) _G.notify("Collected "..x.Name,1,"check") end) task.wait() end end else if not _G.hasAnyMutation(p,_G.ignoreMutation) then pcall(function() _G.ByteNetReliable:FireServer(_G.harvestBuffer,{p}) _G.notify("Collected "..p.Name,1,"check") end) task.wait() end end end end task.wait(1) end end _G.collectFruitThread=nil end
+_G.collectNoneMutated = function() local n=false while _G.runningCollectNoneMutated do if _G.checkEventStatus() then if not n then _G.notify("Paused: A selected event is active. Waiting...",3,"triangle-alert") n=true end while _G.checkEventStatus() and _G.runningCollectNoneMutated do task.wait(1) end if _G.runningCollectNoneMutated then _G.notify("Resuming auto collection - event ended",2,"check") n=false end end if not _G.runningCollectNoneMutated then break end Farm,ImportantFolder,Plants_Physical,Objects_Physical=_G.GetPlayerFarm(localPlayer.Name) for _,p in ipairs(Plants_Physical:GetChildren()) do if not _G.runningCollectNoneMutated or _G.checkEventStatus() then break end if p:IsA("Model") then local f=p:FindFirstChild("Fruits") if f then for _,x in ipairs(f:GetChildren()) do if not _G.runningCollectNoneMutated or _G.checkEventStatus() then break end if not _G.hasAnyMutation(x,_G.sortedMutations) and not x:GetAttribute("Favorited") then pcall(function() _G.ByteNetReliable:FireServer(_G.harvestBuffer,{x}) _G.notify("Collected "..x.Name,1,"check") end) task.wait() end end elseif not _G.hasAnyMutation(p,_G.sortedMutations) and not p:GetAttribute("Favorited") then pcall(function() _G.ByteNetReliable:FireServer(_G.harvestBuffer,{p}) _G.notify("Collected "..p.Name,1,"check") end) task.wait() end end end task.wait(1) end _G.collectNoneThread=nil end
+
+_G.seedList = {"Cherry Blossom Seed", "Daffodil Seed", "Coconut Seed", "Lumira", "Crocus", "Easter Egg Seed", "Traveler's Fruit", "Apple Seed", "Dandelion", "Cocovine", "Red Lollipop Seed", "Succulent Seed", "Raspberry Seed", "Cranberry Seed", "Loquat Seed", "Dragon Pepper", "Moon Blossom Seed", "Pineapple Seed", "Blood Banana Seed", "Crimson Vine Seed", "Foxglove", "Nectar Thorn", "Pumpkin Seed", "Pepper Seed", "Cacao Seed", "Lotus Seed", "Orange Tulip", "Cursed Fruit Seed", "Carrot Seed", "Mango Seed", "Lilac", "Elephant Ears", "Lavender", "Hive Fruit", "Soul Fruit Seed", "Moonglow Seed", "Avocado Seed", "Mint Seed", "Noble Flower", "Tomato Seed", "Ice Cream Bean Seed", "Nightshade Seed", "Starfruit Seed", "Passionfruit Seed", "Lemon Seed", "Pear Seed", "Blueberry Seed", "Candy Blossom Seed", "Purple Dahlia Seed", "Parasol Flower", "Strawberry Seed", "Green Apple", "Glowshroom Seed", "Sunflower", "Banana Seed", "Rose", "Peach Seed", "Bee Balm", "Bendboo", "Mushroom Seed", "Violet Corn", "Candy Sunflower Seed", "Bamboo Seed", "Nectarine", "Ember Lily", "Suncoil", "Pink Lily Seed", "Moon Mango Seed", "Eggplant Seed", "Durian Seed", "Papaya Seed", "Prickly Pear", "Corn Seed", "Honeysuckle", "Venus Fly Trap Seed", "Dragon Fruit Seed", "Moon Melon Seed", "Moonflower Seed", "Chocolate Carrot Seed", "Watermelon Seed", "Celestiberry Seed", "Cactus Seed", "Sugar Apple", "Nectarshade", "Beanstalk Seed", "Grape Seed", "Manuka Flower" }
+table.sort( _G.seedList )
+_G.sortedMutations = { "Wet", "Chilled","Choc","Moonlit","Pollinated","Bloodlit","Plasma","HoneyGlazed","Heavenly","Frozen","Zombified","Rainbow","Shocked","Celestial","Disco","Voidtouched","Dawnbound","Burnt","Twisted","Cooked","Molten","Beenaded","Gold","Windstruck","Meteoric" }
+table.sort( _G.sortedMutations )
+
+_G.togglePrompts = function(e) for _,p in ipairs(_G.Farms:GetDescendants()) do if p:IsA("ProximityPrompt") and p.Enabled~=e then p.Enabled=e end end end
+
+_G.autoplantSeed = function() local h=_G.getHumanoidRootPart() if not h then return end local p=h.Position local c=getCurrentCharacter() while _G.AutoPlantSeed do if c then for _,t in ipairs(c:GetChildren()) do if t:IsA("Tool") and t.Name:lower():find("seed") then local a={Vector3.new(p.X,p.Y,p.Z),t:GetAttribute("Seed")} pcall(function() _G.plantEvent:FireServer(unpack(a)) end) task.wait() end end end task.wait() end end
+_G.autoholdSeed = function() while _G.AutoHoldSeedCheck do local h=_G.getHumanoidRootPart() local c=_G.getCurrentCharacter() if not h or not c then return end for _,t in ipairs(c:GetChildren()) do if t:IsA("Tool") and t.Name:lower():find("seed") and t:GetAttribute("n")~="Flower Seed Pack" then for b,e in pairs(_G.donotPlantSeed) do if e and t.Name:lower():find(b:lower()) then t.Parent=_G.localPlayerBag end end end end for _,t in ipairs(_G.localPlayerBag:GetChildren()) do if t:IsA("Tool") and t.Name:lower():find("seed") and t:GetAttribute("n")~="Flower Seed Pack" then local s=false for b,e in pairs(_G.donotPlantSeed) do if e and t.Name:lower():find(b:lower()) then s=true break end end if not s then t.Parent=c end end end task.wait(1) end end
+
+_G.shouldCollect = function() for _,e in pairs(_G.enabledMutations) do if e then return true end task.wait() end return false end
+
+_G.collectspecial = function() if not _G.shouldCollect() then return end local l={} Farm,ImportantFolder,Plants_Physical,Objects_Physical=_G.GetPlayerFarm(_G.localPlayer.Name) for _,m in ipairs(Plants_Physical:GetChildren()) do if m:IsA("Model") then local f=m:WaitForChild("Fruits",60) local a=false if f then for _,x in ipairs(f:GetChildren()) do if x:IsA("Model") and _G.hasAnyMutation(x,_G.enabledMutations) and not x:GetAttribute("Favorited") and not _G.hasAnyMutation(x,_G.ignoreMutation) then table.insert(l,x) a=true break end end end if not a and _G.hasAnyMutation(m,_G.enabledMutations) and not m:GetAttribute("Favorited") and not _G.hasAnyMutation(m,_G.ignoreMutation) then table.insert(l,m) end end end for _,i in ipairs(l) do if not _G.shouldCollect() or _G.checkEventStatus() then break end pcall(function() _G.ByteNetReliable:FireServer(harvestBuffer,{i}) _G.notify("Collected "..i.Name,1,"check") end) task.wait() end end
+_G.updateAutoCollectThread = function() if _G.shouldCollect() and not _G.isCollectingSpecial then _G.isCollectingSpecial=true _G.notify("Auto Collecting Mutations started.",2,"check") _G.collectMutationThread=task.spawn(function() local n=false while _G.shouldCollect() do if _G.checkEventStatus() then if not n then _G.notify("Paused: A selected event is active. Waiting...",3,"triangle-alert") n=true end while _G.checkEventStatus() and shouldCollect() do task.wait(1) end if _G.shouldCollect() then _G.notify("Resuming mutation collection - event ended",2,"check") n=false end end if not _G.shouldCollect() then break end _G.collectspecial() task.wait(0.5) end _G.isCollectingSpecial=false _G.collectMutationThread=nil _G.notify("Mutation auto collection stopped.",2,"x") end) elseif not _G.shouldCollect() and _G.isCollectingSpecial then _G.notify("All mutation toggles disabled. Auto collection halted.",3,"x") _G.isCollectingSpecial=false if _G.collectMutationThread then _G.collectMutationThread=nil end end end
+_G.createToggle = function(t,i,n,r,a,c) local d=string.format("%s (%s)",n,r or "???") local g=t:Toggle({Title=d,Icon="shopping-cart",Default=false,Callback=function(v) i[a:lower()]=v end}) c:Register("AutoShop"..d,g) end
+_G.getSortedKeys = function(t) local k={} for i in pairs(t) do table.insert(k,i) end table.sort(k) return k end
+
+task.spawn(function() while task.wait(0.5) do local d,s,h=_G.getPlayerData() for c,i in pairs(_G.getStockchild("CosmeticStock","CrateStocks")) do if _G.wantedCrates[c:lower()] and i.Stock>0 and _G.requiredCratesData[c].Price<=s then pcall(function() _G.Remotes.buyCratesRemote:FireServer(c) _G.notify("Bought seed: "..c,1,"shopping-cart") task.wait() end) end end for n,i in pairs(_G.getStockchild("CosmeticStock","ItemStocks")) do if _G.wantedItems[n:lower()] and i.Stock>0 and _G.requiredItemData[n].Price<=s then pcall(function() _G.Remotes.buyItemRemote:FireServer(n) _G.notify("Bought seed: "..n,1,"shopping-cart") task.wait() end) print("found") end end for n,i in pairs(_G.getStock("SeedStock")) do if _G.seedShopWanted[n:lower()] and i.Stock>0 and _G.requiredSeedData[n].Price<=s then pcall(function() _G.Remotes.buySeedStockRemote:FireServer(n) _G.notify("Bought seed: "..n,1,"shopping-cart") task.wait() end) end end for n,i in pairs(_G.getStock("GearStock")) do if _G.gearShopWanted[n:lower()] and i.Stock>0 and _G.requiredGearData[n].Price<=s then pcall(function() _G.Remotes.buyGearStockRemote:FireServer(n) _G.notify("Bought gear: "..n,1,"shopping-cart") task.wait() end) end end for n,i in pairs(_G.getStock("PetEggStock")) do local e=i.EggName if _G.wantedEggs[e:lower()] and i.Stock>0 and _G.requiredPetEggData[e].Price<=s then pcall(function() _G.Remotes.buyPetEggRemote:FireServer(n) _G.notify("Bought egg: "..e,1,"shopping-cart") task.wait() end) end end for n,i in pairs(_G.getStock("EventShopStock")) do if _G.wantedEventItems[n:lower()] and i.Stock>0 and _G.requiredEventShopData[n].Price<=h then pcall(function() _G.Remotes.buyEventShopStockRemote:FireServer(n) _G.notify("Bought event item: "..n,1,"shopping-cart") task.wait() end) end end end end)
+
