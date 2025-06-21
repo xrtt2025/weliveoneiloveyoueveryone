@@ -65,3 +65,4 @@ _G.refreshPlayerList = function(d)local t={}for _,p in ipairs(game.Players:GetPl
 _G.parseTargetFruits=function(d)local u={}local function a(n)local c=n:match("^%s*(.-)%s*$"):lower()if c~=""then u[c]=true end end for _,f in ipairs(d.Value or{})do a(f)end local p={}for n in pairs(u)do table.insert(p,n)end return p end
 
 _G.hasAnyMutation=function(o,m)if not o or not o.GetAttributes then return false end for a in pairs(o:GetAttributes())do local l=a:lower()if type(m)=="table"then for k,e in pairs(m)do if e and l==k:lower()then return true end end for _,v in ipairs(m)do if l==v:lower()then return true end end end end return false end
+ 
