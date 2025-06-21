@@ -21,6 +21,12 @@ _G.httpService=_G.getService("HttpService")
 _G.teleportService=_G.getService("TeleportService")
 _G.marketplaceService=_G.getService("MarketplaceService")
 _G.collectionService=_G.getService("CollectionService")
+
+_G.seedList = {"Cherry Blossom Seed", "Daffodil Seed", "Coconut Seed", "Lumira", "Crocus", "Easter Egg Seed", "Traveler's Fruit", "Apple Seed", "Dandelion", "Cocovine", "Red Lollipop Seed", "Succulent Seed", "Raspberry Seed", "Cranberry Seed", "Loquat Seed", "Dragon Pepper", "Moon Blossom Seed", "Pineapple Seed", "Blood Banana Seed", "Crimson Vine Seed", "Foxglove", "Nectar Thorn", "Pumpkin Seed", "Pepper Seed", "Cacao Seed", "Lotus Seed", "Orange Tulip", "Cursed Fruit Seed", "Carrot Seed", "Mango Seed", "Lilac", "Elephant Ears", "Lavender", "Hive Fruit", "Soul Fruit Seed", "Moonglow Seed", "Avocado Seed", "Mint Seed", "Noble Flower", "Tomato Seed", "Ice Cream Bean Seed", "Nightshade Seed", "Starfruit Seed", "Passionfruit Seed", "Lemon Seed", "Pear Seed", "Blueberry Seed", "Candy Blossom Seed", "Purple Dahlia Seed", "Parasol Flower", "Strawberry Seed", "Green Apple", "Glowshroom Seed", "Sunflower", "Banana Seed", "Rose", "Peach Seed", "Bee Balm", "Bendboo", "Mushroom Seed", "Violet Corn", "Candy Sunflower Seed", "Bamboo Seed", "Nectarine", "Ember Lily", "Suncoil", "Pink Lily Seed", "Moon Mango Seed", "Eggplant Seed", "Durian Seed", "Papaya Seed", "Prickly Pear", "Corn Seed", "Honeysuckle", "Venus Fly Trap Seed", "Dragon Fruit Seed", "Moon Melon Seed", "Moonflower Seed", "Chocolate Carrot Seed", "Watermelon Seed", "Celestiberry Seed", "Cactus Seed", "Sugar Apple", "Nectarshade", "Beanstalk Seed", "Grape Seed", "Manuka Flower" }
+table.sort( _G.seedList )
+_G.sortedMutations = { "Wet", "Chilled","Choc","Moonlit","Pollinated","Bloodlit","Plasma","HoneyGlazed","Heavenly","Frozen","Zombified","Rainbow","Shocked","Celestial","Disco","Voidtouched","Dawnbound","Burnt","Twisted","Cooked","Molten","Beenaded","Gold","Windstruck","Meteoric" }
+table.sort( _G.sortedMutations )
+
 _G.addConnection=function(n,c)if not n or not c then return end if _G.Connections[n]then pcall(function()_G.Connections[n]:Disconnect()end)end _G.Connections[n]=c end
 _G.cleanupConnections=function(n)if n then if _G.Connections[n]then pcall(function()_G.Connections[n]:Disconnect()end)_G.Connections[n]=nil end else for k,v in pairs(_G.Connections)do if v then pcall(function()v:Disconnect()end)end end _G.Connections={}end end
 _G.safeGet=function(i,...)for _,n in ipairs({...})do i=i:WaitForChild(n,10)if not i then return nil end end return i end
@@ -30,52 +36,9 @@ _G.GetTool=function(c)return c and c:FindFirstChildOfClass("Tool")end
 _G.getHumanoidRootPart=function()local p=_G.players.LocalPlayer if p and p.Character then return p.Character:FindFirstChild("HumanoidRootPart")end return nil end
 task.defer(function()local function touch(e)if not e then return end local h=_G.getHumanoidRootPart()if not h then return end if not pcall(function()firetouchinterest(h,e,0)task.wait()firetouchinterest(h,e,1)end)then warn("Touch function failed - firetouchinterest may not be available")end end local p=_G.players.LocalPlayer workspace.ChildAdded:Connect(function(c)if not c:IsA("Model")then return end task.wait(1)if c:GetAttribute("SEED_GIVEN")and c:GetAttribute("OWNER")==p.Name then task.wait(2)local part=c:FindFirstChildOfClass("Part")if not part then return end touch(part)end end)end)
 
-local localPlayer    = _G.players.LocalPlayer
-local function getCharacter() return localPlayer and(localPlayer.Character or localPlayer.CharacterAdded:Wait())end
-local function getCurrentCharacter() return localPlayer and localPlayer.Character end
-local function getHumanoidRootPart() local char = getCurrentCharacter() return char and char:FindFirstChild("HumanoidRootPart") end
-local function getHumanoid() local char = getCurrentCharacter() return char and char:FindFirstChild("Humanoid") end
-local localPlayerBag = localPlayer.Backpack
-
-_G.seedList = {"Cherry Blossom Seed", "Daffodil Seed", "Coconut Seed", "Lumira", "Crocus", "Easter Egg Seed", "Traveler's Fruit", "Apple Seed", "Dandelion", "Cocovine", "Red Lollipop Seed", "Succulent Seed", "Raspberry Seed", "Cranberry Seed", "Loquat Seed", "Dragon Pepper", "Moon Blossom Seed", "Pineapple Seed", "Blood Banana Seed", "Crimson Vine Seed", "Foxglove", "Nectar Thorn", "Pumpkin Seed", "Pepper Seed", "Cacao Seed", "Lotus Seed", "Orange Tulip", "Cursed Fruit Seed", "Carrot Seed", "Mango Seed", "Lilac", "Elephant Ears", "Lavender", "Hive Fruit", "Soul Fruit Seed", "Moonglow Seed", "Avocado Seed", "Mint Seed", "Noble Flower", "Tomato Seed", "Ice Cream Bean Seed", "Nightshade Seed", "Starfruit Seed", "Passionfruit Seed", "Lemon Seed", "Pear Seed", "Blueberry Seed", "Candy Blossom Seed", "Purple Dahlia Seed", "Parasol Flower", "Strawberry Seed", "Green Apple", "Glowshroom Seed", "Sunflower", "Banana Seed", "Rose", "Peach Seed", "Bee Balm", "Bendboo", "Mushroom Seed", "Violet Corn", "Candy Sunflower Seed", "Bamboo Seed", "Nectarine", "Ember Lily", "Suncoil", "Pink Lily Seed", "Moon Mango Seed", "Eggplant Seed", "Durian Seed", "Papaya Seed", "Prickly Pear", "Corn Seed", "Honeysuckle", "Venus Fly Trap Seed", "Dragon Fruit Seed", "Moon Melon Seed", "Moonflower Seed", "Chocolate Carrot Seed", "Watermelon Seed", "Celestiberry Seed", "Cactus Seed", "Sugar Apple", "Nectarshade", "Beanstalk Seed", "Grape Seed", "Manuka Flower" }
-table.sort( _G.seedList )
-_G.sortedMutations = { "Wet", "Chilled","Choc","Moonlit","Pollinated","Bloodlit","Plasma","HoneyGlazed","Heavenly","Frozen","Zombified","Rainbow","Shocked","Celestial","Disco","Voidtouched","Dawnbound","Burnt","Twisted","Cooked","Molten","Beenaded","Gold","Windstruck","Meteoric" }
-table.sort( _G.sortedMutations )
 
 
-_G.hasAnyMutation = function(obj, mutationList) if not obj or not obj.GetAttributes then return false end for attrName in pairs(obj:GetAttributes()) do local attrLower = string.lower(attrName) if type(mutationList) == "table" then for mutation, enabled in pairs(mutationList) do if enabled and attrLower == string.lower(mutation) then return true end end for _, mutation in ipairs(mutationList) do if attrLower == string.lower(mutation) then return true end end end end return false end
-_G.formatNumber=function(value,useCommaDecimal)local formatted=tostring(value)repeat formatted=formatted:gsub("^(-?%d+)(%d%d%d)","%1,%2")until not formatted:find("^(-?%d+)(%d%d%d)")if useCommaDecimal then formatted=formatted:gsub('%.',',')end return formatted end
-_G.GetDistance=function(a,b,ignore)ignore=ignore or {}local function adjust(vec)return Vector3.new(table.find(ignore,"X")and 0 or vec.X,table.find(ignore,"Y")and 0 or vec.Y,table.find(ignore,"Z")and 0 or vec.Z)end return(adjust(a)-adjust(b)).Magnitude end
-_G.hidePlantVisualEffects=function(hide)local transparencyLevel=hide and 1 or 0.5 for _,descendant in ipairs(_G.Farms:GetDescendants())do if descendant:IsA("ParticleEmitter")then descendant.Enabled=not hide elseif descendant.Name=="FrozenShell"and descendant:IsA("BasePart")then descendant.Transparency=transparencyLevel end end end
-_G.unequip_tool = function(character)for _,child in ipairs(character:GetChildren())do if child:IsA("Tool")then child.Parent=localPlayerBag end end end
+_G.refreshPlayerList = function(d)local t={}for _,p in ipairs(game.Players:GetPlayers())do if p~=localPlayer then table.insert(t,p.Name)end end table.sort(t)d:Refresh(t)end
+_G.parseTargetFruits=function(d)local u={}local function a(n)local c=n:match("^%s*(.-)%s*$"):lower()if c~=""then u[c]=true end end for _,f in ipairs(d.Value or{})do a(f)end local p={}for n in pairs(u)do table.insert(p,n)end return p end
 
-_G.refreshPlayerList=function(targetDropdown)local localPlayer=game.Players.LocalPlayer local players={}for _,player in ipairs(game.Players:GetPlayers())do if player~=localPlayer then table.insert(players,player.Name)end end table.sort(players)targetDropdown:Refresh(players)end
-_G.parseTargetFruits=function(TargetDropdown)local uniqueFruits={}local function addFruit(name)local cleanedName=name:match("^%s*(.-)%s*$"):lower()if cleanedName~=""then uniqueFruits[cleanedName]=true end end for _,fruit in ipairs(TargetDropdown.Value or {})do addFruit(fruit)end local parsedList={}for fruitName in pairs(uniqueFruits)do table.insert(parsedList,fruitName)end return parsedList end
-_G.togglePrompts=function(enabled)for _,prompt in ipairs(_G.Farms:GetDescendants())do if prompt:IsA("ProximityPrompt")and prompt.Enabled~=enabled then prompt.Enabled=enabled end end end
-_G.autoholdSeed=function(AutoHoldSeedCheck,donotPlantSeed)while AutoHoldSeedCheck do local hrp=getHumanoidRootPart()local char=getCurrentCharacter()if not hrp or not char then return end for _,tool in ipairs(char:GetChildren())do if tool:IsA("Tool")and string.find(tool.Name:lower(),"seed")and tool:GetAttribute("n")~="Flower Seed Pack"then for blockedSeed,isEnabled in pairs(donotPlantSeed)do if isEnabled and string.find(tool.Name:lower(),blockedSeed:lower())then tool.Parent=localPlayerBag end end end end for _,tool in ipairs(localPlayerBag:GetChildren())do if tool:IsA("Tool")and string.find(tool.Name:lower(),"seed")and tool:GetAttribute("n")~="Flower Seed Pack"then local shouldSkip=false for blockedSeed,isEnabled in pairs(donotPlantSeed)do if isEnabled and string.find(tool.Name:lower(),blockedSeed:lower())then shouldSkip=true break end end if not shouldSkip then tool.Parent=char end end end task.wait(1)end end
-
-_G.autoplantSeed = function(plantEvent)
-    local hrp = getHumanoidRootPart()
-    if not hrp then return end
-
-    local plantPosition = hrp.Position
-    local char = getCurrentCharacter()
-
-    while _G.AutoPlantSeed do
-        if char then
-            for _, tool in ipairs(char:GetChildren()) do
-                if tool:IsA("Tool") and string.find(tool.Name:lower(), "seed") then
-                    local args = {
-                        Vector3.new(plantPosition.X, plantPosition.Y, plantPosition.Z),
-                        tool:GetAttribute("Seed")
-                    }
-                    pcall(function()
-                        plantEvent:FireServer(unpack(args))
-                    end)
-                    task.wait()
-                end
-            end
-        end
-        task.wait()
-    end
-end
+_G.hasAnyMutation=function(o,m)if not o or not o.GetAttributes then return false end for a in pairs(o:GetAttributes())do local l=a:lower()if type(m)=="table"then for k,e in pairs(m)do if e and l==k:lower()then return true end end for _,v in ipairs(m)do if l==v:lower()then return true end end end end return false end
