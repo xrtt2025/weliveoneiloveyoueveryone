@@ -37,13 +37,67 @@ _G.GetTool=function(c) return c and c:FindFirstChildOfClass("Tool") end
 task.defer(function() local function touch(e) if not e then return end local h=_G.getHumanoidRootPart() if not h then return end if not pcall(function() firetouchinterest(h,e,0) task.wait() firetouchinterest(h,e,1) end) then warn("Touch function failed - firetouchinterest may not be available") end end local p=_G.players.LocalPlayer workspace.ChildAdded:Connect(function(c) if not c:IsA("Model") then return end task.wait(1) if c:GetAttribute("SEED_GIVEN") and c:GetAttribute("OWNER")==p.Name then task.wait(2) local part=c:FindFirstChildOfClass("Part") if not part then return end touch(part) end end) end)
 _G.unequip_tool = function() for _,c in ipairs(character:GetChildren()) do if c:IsA("Tool") then c.Parent=_G.localPlayerBag end end end
 _G.GetCrops = function() local c,H={},_G.GetTool(character) if not _G.localPlayerBag or #_G.localPlayerBag:GetChildren()==0 then return c end for _,t in ipairs(_G.localPlayerBag:GetChildren()) do if t:GetAttribute("b")=="j" then table.insert(c,t) end end if H and H:GetAttribute("b")=="j" and not table.find(c,H) then table.insert(c,H) end return c end
+_G.GetPlayerFarm = function(Player)
+    if not Player then return end
 
-_G.getExitButton = function(gui, path)
-    local current = gui
-    for _, segment in ipairs(path) do
-        task.wait()
-        current = current:WaitForChild(segment, 10)
-        if not current then return nil end
+    for _, Farm in ipairs(_G.Farms:GetChildren()) do
+        local ImportantFolder = Farm:WaitForChild("Important", 60)
+        if ImportantFolder then
+            local DataFolder = ImportantFolder:WaitForChild("Data", 60)
+            if DataFolder then
+                local OwnerData = DataFolder:WaitForChild("Owner", 60)
+                if OwnerData and OwnerData.Value == Player then
+                    return Farm, ImportantFolder, ImportantFolder:WaitForChild("Plants_Physical", 60), ImportantFolder:WaitForChild("Objects_Physical" , 60)
+                end
+            end
+        end
     end
-    return current
 end
+
+_G.refreshFruitsList = function(TargetDropdown, TargetPlayer)
+
+    Farm, ImportantFolder, Plants_Physical, Objects_Physical = _G.GetPlayerFarm(TargetPlayer)
+
+    local fruitsList = {}
+
+    if not Plants_Physical then
+        warn("Plants_Physical folder not found")
+        return
+    end
+
+    for _, plant in ipairs(Plants_Physical:GetChildren()) do
+        if plant:IsA("Model") then
+            local plantName = plant.Name
+            if not table.find(fruitsList, plantName) then
+                table.insert(fruitsList, plantName)
+            end
+        end
+    end
+
+    table.sort(fruitsList)
+    TargetDropdown:Refresh(fruitsList)
+end
+
+_G.parseTargetFruits = function(TargetDropdown)
+    local uniqueFruits = {}
+
+    local function addFruit(name)
+        local cleanedName = name:match("^%s*(.-)%s*$"):lower()
+        if cleanedName ~= "" then
+            uniqueFruits[cleanedName] = true
+        end
+    end
+
+    for _, fruit in ipairs(TargetDropdown.Value or {}) do
+        addFruit(fruit)
+    end
+
+    local parsedList = {}
+    for fruitName in pairs(uniqueFruits) do
+        table.insert(parsedList, fruitName)
+    end
+
+    return parsedList
+end
+
+_G.hasAnyMutation = function(obj, mutationList) if not obj or not obj.GetAttributes then return false end for attrName in pairs(obj:GetAttributes()) do local attrLower = string.lower(attrName) if type(mutationList) == "table" then for mutation, enabled in pairs(mutationList) do if enabled and attrLower == string.lower(mutation) then return true end end for _, mutation in ipairs(mutationList) do if attrLower == string.lower(mutation) then return true end end end end return false end
