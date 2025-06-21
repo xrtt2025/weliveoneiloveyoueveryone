@@ -43,10 +43,11 @@ local MutationNames = MutationHandler.MutationNames
 _G.seedList = {}
 
 for key, value in pairs(MutationNames) do
-    table.insert(_G.seedList, value)
+    table.insert(_G.seedList, key)
 end
 
 table.sort(_G.seedList)
+
 _G.sortedMutations = { "Wet", "Chilled","Choc","Moonlit","Pollinated","Bloodlit","Plasma","HoneyGlazed","Heavenly","Frozen","Zombified","Rainbow","Shocked","Celestial","Disco","Voidtouched","Dawnbound","Burnt","Twisted","Cooked","Molten","Beenaded","Gold","Windstruck","Meteoric" }
 table.sort( _G.sortedMutations )
 
