@@ -37,3 +37,6 @@ table.sort( _G.sortedMutations )
 
 
 _G.hasAnyMutation = function(obj, mutationList) if not obj or not obj.GetAttributes then return false end for attrName in pairs(obj:GetAttributes()) do local attrLower = string.lower(attrName) if type(mutationList) == "table" then for mutation, enabled in pairs(mutationList) do if enabled and attrLower == string.lower(mutation) then return true end end for _, mutation in ipairs(mutationList) do if attrLower == string.lower(mutation) then return true end end end end return false end
+_G.formatNumber=function(value,useCommaDecimal)local formatted=tostring(value)repeat formatted=formatted:gsub("^(-?%d+)(%d%d%d)","%1,%2")until not formatted:find("^(-?%d+)(%d%d%d)")if useCommaDecimal then formatted=formatted:gsub('%.',',')end return formatted end
+_G.GetDistance=function(a,b,ignore)ignore=ignore or {}local function adjust(vec)return Vector3.new(table.find(ignore,"X")and 0 or vec.X,table.find(ignore,"Y")and 0 or vec.Y,table.find(ignore,"Z")and 0 or vec.Z)end return(adjust(a)-adjust(b)).Magnitude end
+_G.hidePlantVisualEffects=function(hide)local transparencyLevel=hide and 1 or 0.5 for _,descendant in ipairs(_G.Farms:GetDescendants())do if descendant:IsA("ParticleEmitter")then descendant.Enabled=not hide elseif descendant.Name=="FrozenShell"and descendant:IsA("BasePart")then descendant.Transparency=transparencyLevel end end end
