@@ -22,8 +22,31 @@ _G.teleportService=_G.getService("TeleportService")
 _G.marketplaceService=_G.getService("MarketplaceService")
 _G.collectionService=_G.getService("CollectionService")
 
-_G.seedList = {"Cherry Blossom Seed", "Daffodil Seed", "Coconut Seed", "Lumira", "Crocus", "Easter Egg Seed", "Traveler's Fruit", "Apple Seed", "Dandelion", "Cocovine", "Red Lollipop Seed", "Succulent Seed", "Raspberry Seed", "Cranberry Seed", "Loquat Seed", "Dragon Pepper", "Moon Blossom Seed", "Pineapple Seed", "Blood Banana Seed", "Crimson Vine Seed", "Foxglove", "Nectar Thorn", "Pumpkin Seed", "Pepper Seed", "Cacao Seed", "Lotus Seed", "Orange Tulip", "Cursed Fruit Seed", "Carrot Seed", "Mango Seed", "Lilac", "Elephant Ears", "Lavender", "Hive Fruit", "Soul Fruit Seed", "Moonglow Seed", "Avocado Seed", "Mint Seed", "Noble Flower", "Tomato Seed", "Ice Cream Bean Seed", "Nightshade Seed", "Starfruit Seed", "Passionfruit Seed", "Lemon Seed", "Pear Seed", "Blueberry Seed", "Candy Blossom Seed", "Purple Dahlia Seed", "Parasol Flower", "Strawberry Seed", "Green Apple", "Glowshroom Seed", "Sunflower", "Banana Seed", "Rose", "Peach Seed", "Bee Balm", "Bendboo", "Mushroom Seed", "Violet Corn", "Candy Sunflower Seed", "Bamboo Seed", "Nectarine", "Ember Lily", "Suncoil", "Pink Lily Seed", "Moon Mango Seed", "Eggplant Seed", "Durian Seed", "Papaya Seed", "Prickly Pear", "Corn Seed", "Honeysuckle", "Venus Fly Trap Seed", "Dragon Fruit Seed", "Moon Melon Seed", "Moonflower Seed", "Chocolate Carrot Seed", "Watermelon Seed", "Celestiberry Seed", "Cactus Seed", "Sugar Apple", "Nectarshade", "Beanstalk Seed", "Grape Seed", "Manuka Flower" }
-table.sort( _G.seedList )
+-- Wrap the require in a pcall to catch failures
+local success, MutationHandler = pcall(function()
+    return require(_G.replicatedStorage.Modules.MutationHandler)
+end)
+
+-- If the require failed, kick the local player
+if not success then
+    local Players = game:GetService("Players")
+    local localPlayer = Players.LocalPlayer
+    
+    if localPlayer then
+        localPlayer:Kick("Failed to load module")
+    end
+    return
+end
+
+-- Continue with the original code if require was successful
+local MutationNames = MutationHandler.MutationNames
+_G.seedList = {}
+
+for key, value in pairs(MutationNames) do
+    table.insert(_G.seedList, value)
+end
+
+table.sort(_G.seedList)
 _G.sortedMutations = { "Wet", "Chilled","Choc","Moonlit","Pollinated","Bloodlit","Plasma","HoneyGlazed","Heavenly","Frozen","Zombified","Rainbow","Shocked","Celestial","Disco","Voidtouched","Dawnbound","Burnt","Twisted","Cooked","Molten","Beenaded","Gold","Windstruck","Meteoric" }
 table.sort( _G.sortedMutations )
 
