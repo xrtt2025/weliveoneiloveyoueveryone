@@ -29,3 +29,4 @@ _G.getModule=function(p,n)if not _G.loadedModules[n]then local m=p:FindFirstChil
 _G.GetTool=function(c)return c and c:FindFirstChildOfClass("Tool")end
 _G.getHumanoidRootPart=function()local p=_G.players.LocalPlayer if p and p.Character then return p.Character:FindFirstChild("HumanoidRootPart")end return nil end
 task.defer(function()local function touch(e)if not e then return end local h=_G.getHumanoidRootPart()if not h then return end if not pcall(function()firetouchinterest(h,e,0)task.wait()firetouchinterest(h,e,1)end)then warn("Touch function failed - firetouchinterest may not be available")end end local p=_G.players.LocalPlayer workspace.ChildAdded:Connect(function(c)if not c:IsA("Model")then return end task.wait(1)if c:GetAttribute("SEED_GIVEN")and c:GetAttribute("OWNER")==p.Name then task.wait(2)local part=c:FindFirstChildOfClass("Part")if not part then return end touch(part)end end)end)
+ 
