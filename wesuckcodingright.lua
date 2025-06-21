@@ -24,31 +24,7 @@ _G.collectionService=_G.getService("CollectionService")
 
 _G.seedList = {"Cherry Blossom Seed", "Daffodil Seed", "Coconut Seed", "Lumira", "Crocus", "Easter Egg Seed", "Traveler's Fruit", "Apple Seed", "Dandelion", "Cocovine", "Red Lollipop Seed", "Succulent Seed", "Raspberry Seed", "Cranberry Seed", "Loquat Seed", "Dragon Pepper", "Moon Blossom Seed", "Pineapple Seed", "Blood Banana Seed", "Crimson Vine Seed", "Foxglove", "Nectar Thorn", "Pumpkin Seed", "Pepper Seed", "Cacao Seed", "Lotus Seed", "Orange Tulip", "Cursed Fruit Seed", "Carrot Seed", "Mango Seed", "Lilac", "Elephant Ears", "Lavender", "Hive Fruit", "Soul Fruit Seed", "Moonglow Seed", "Avocado Seed", "Mint Seed", "Noble Flower", "Tomato Seed", "Ice Cream Bean Seed", "Nightshade Seed", "Starfruit Seed", "Passionfruit Seed", "Lemon Seed", "Pear Seed", "Blueberry Seed", "Candy Blossom Seed", "Purple Dahlia Seed", "Parasol Flower", "Strawberry Seed", "Green Apple", "Glowshroom Seed", "Sunflower", "Banana Seed", "Rose", "Peach Seed", "Bee Balm", "Bendboo", "Mushroom Seed", "Violet Corn", "Candy Sunflower Seed", "Bamboo Seed", "Nectarine", "Ember Lily", "Suncoil", "Pink Lily Seed", "Moon Mango Seed", "Eggplant Seed", "Durian Seed", "Papaya Seed", "Prickly Pear", "Corn Seed", "Honeysuckle", "Venus Fly Trap Seed", "Dragon Fruit Seed", "Moon Melon Seed", "Moonflower Seed", "Chocolate Carrot Seed", "Watermelon Seed", "Celestiberry Seed", "Cactus Seed", "Sugar Apple", "Nectarshade", "Beanstalk Seed", "Grape Seed", "Manuka Flower" }
 table.sort( _G.seedList )
-
-local success, MutationHandler = pcall(function()
-    return require(_G.replicatedStorage.Modules.MutationHandler)
-end)
-
--- If the require failed, kick the local player
-if not success then
-    local Players = game:GetService("Players")
-    local localPlayer = Players.LocalPlayer
-    
-    if localPlayer then
-        localPlayer:Kick("Failed to load MutationHandler module")
-    end
-    return -- Exit the script early
-end
-
--- Continue with the original code if require was successful
-local MutationNames = MutationHandler.MutationNames
-_G.sortedMutations = {}
-
-for key, value in pairs(MutationNames) do
-    table.insert(_G.sortedMutations, key)
-end
-
-table.sort(_G.sortedMutations)
+_G.sortedMutations = {"Alienlike", "Bloodlit", "Burnt", "Celestial", "Chilled", "Choc", "Cooked", "Dawnbound", "Disco", "Frozen", "Galactic", "Heavenly", "HoneyGlazed", "Meteoric", "Molten", "Moonlit", "Paradisal", "Plasma", "Pollinated", "Shocked", "Sundried", "Twisted", "Verdant", "Voidtouched", "Wet", "Windstruck", "Zombified"}
 
 _G.addConnection=function(n,c)if not n or not c then return end if _G.Connections[n]then pcall(function()_G.Connections[n]:Disconnect()end)end _G.Connections[n]=c end
 _G.cleanupConnections=function(n)if n then if _G.Connections[n]then pcall(function()_G.Connections[n]:Disconnect()end)_G.Connections[n]=nil end else for k,v in pairs(_G.Connections)do if v then pcall(function()v:Disconnect()end)end end _G.Connections={}end end
@@ -65,4 +41,26 @@ _G.refreshPlayerList = function(d)local t={}for _,p in ipairs(game.Players:GetPl
 _G.parseTargetFruits=function(d)local u={}local function a(n)local c=n:match("^%s*(.-)%s*$"):lower()if c~=""then u[c]=true end end for _,f in ipairs(d.Value or{})do a(f)end local p={}for n in pairs(u)do table.insert(p,n)end return p end
 
 _G.hasAnyMutation=function(o,m)if not o or not o.GetAttributes then return false end for a in pairs(o:GetAttributes())do local l=a:lower()if type(m)=="table"then for k,e in pairs(m)do if e and l==k:lower()then return true end end for _,v in ipairs(m)do if l==v:lower()then return true end end end end return false end
- 
+
+--[[local success, MutationHandler = pcall(function()
+    return require(_G.replicatedStorage.Modules.MutationHandler)
+end)
+
+if success and MutationHandler then
+    local MutationNames = MutationHandler.MutationNames
+    _G.sortedMutations = {}
+
+    for key, _ in pairs(MutationNames) do
+        table.insert(_G.sortedMutations, key)
+    end
+
+    table.sort(_G.sortedMutations)
+
+    -- Format as {"Mutation1", "Mutation2", ...}
+    local arrayLiteral = '{"' .. table.concat(_G.sortedMutations, '", "') .. '"}'
+    setclipboard(arrayLiteral)
+    _G.notify("Copied formatted mutation array to clipboard!", 3, "clipboard")
+else
+    warn("Failed to require MutationHandler")
+end
+]]
