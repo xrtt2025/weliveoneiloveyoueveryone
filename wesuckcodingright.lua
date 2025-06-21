@@ -40,31 +40,7 @@ task.defer(function()local function touch(e)if not e then return end local h=_G.
 _G.refreshPlayerList = function(d)local t={}for _,p in ipairs(game.Players:GetPlayers())do if p~=localPlayer then table.insert(t,p.Name)end end table.sort(t)d:Refresh(t)end
 _G.parseTargetFruits=function(d)local u={}local function a(n)local c=n:match("^%s*(.-)%s*$"):lower()if c~=""then u[c]=true end end for _,f in ipairs(d.Value or{})do a(f)end local p={}for n in pairs(u)do table.insert(p,n)end return p end
 
-_G.hasAnyMutation = function(o, m)
-    if not o or not o.GetAttributes then return false end
-
-    for a in pairs(o:GetAttributes()) do
-        if typeof(a) == "string" then
-            local l = a:lower()
-
-            if type(m) == "table" then
-                for k, e in pairs(m) do
-                    if typeof(k) == "string" and e and l == k:lower() then
-                        return true
-                    end
-                end
-
-                for _, v in ipairs(m) do
-                    if typeof(v) == "string" and l == v:lower() then
-                        return true
-                    end
-                end
-            end
-        end
-    end
-
-    return false
-end
+_G.hasAnyMutation = function(obj, mutationList) if not obj or not obj.GetAttributes then return false end for attrName in pairs(obj:GetAttributes()) do local attrLower = string.lower(attrName) if type(mutationList) == "table" then for mutation, enabled in pairs(mutationList) do if enabled and attrLower == string.lower(mutation) then return true end end for _, mutation in ipairs(mutationList) do if attrLower == string.lower(mutation) then return true end end end end return false end
 
 --[[local success, MutationHandler = pcall(function()
     return require(_G.replicatedStorage.Modules.MutationHandler)
