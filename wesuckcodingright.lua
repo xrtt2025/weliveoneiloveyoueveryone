@@ -43,8 +43,8 @@ _G.parseTargetFruits=function(d)local u={}local function a(n)local c=n:match("^%
 _G.hasAnyMutation = function(obj, mutationList) if not obj or not obj.GetAttributes then return false end for attrName in pairs(obj:GetAttributes()) do local attrLower = string.lower(attrName) if type(mutationList) == "table" then for mutation, enabled in pairs(mutationList) do if enabled and attrLower == string.lower(mutation) then return true end end for _, mutation in ipairs(mutationList) do if attrLower == string.lower(mutation) then return true end end end end return false end
 
 
-
-_G.togglePrompts = function(enabled) for _, prompt in ipairs(Farms:GetDescendants()) do if prompt:IsA("ProximityPrompt") and prompt.Enabled ~= enabled then prompt.Enabled = enabled end end end
+_G.unequip_tool = function(character)for _,child in ipairs(character:GetChildren())do if child:IsA("Tool")then child.Parent=localPlayerBag end end end
+_G.togglePrompts = function(enabled) for _, prompt in ipairs(_G.Farms:GetDescendants()) do if prompt:IsA("ProximityPrompt") and prompt.Enabled ~= enabled then prompt.Enabled = enabled end end end
 --[[local success, MutationHandler = pcall(function()
     return require(_G.replicatedStorage.Modules.MutationHandler)
 end)
