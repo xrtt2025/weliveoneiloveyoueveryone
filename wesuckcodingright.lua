@@ -44,29 +44,6 @@ _G.hasAnyMutation = function(obj, mutationList) if not obj or not obj.GetAttribu
 
 
 _G.togglePrompts = function(enabled) for _, prompt in ipairs(_G.Farms:GetDescendants()) do if prompt:IsA("ProximityPrompt") and prompt.Enabled ~= enabled then prompt.Enabled = enabled end end end
-_G.formatNumber  = function(value, useCommaDecimal)
-    local formatted = tostring(value)
-    repeat
-        formatted = formatted:gsub("^(-?%d+)(%d%d%d)", "%1,%2")
-    until not formatted:find("^(-?%d+)(%d%d%d)")
-
-    if useCommaDecimal then
-        formatted = formatted:gsub('%.', ',')
-    end
-    return formatted
-end
-
-_G.GetDistance = function(a, b, ignore)
-    ignore = ignore or {}
-    local function adjust(vec)
-        return Vector3.new(
-            table.find(ignore, "X") and 0 or vec.X,
-            table.find(ignore, "Y") and 0 or vec.Y,
-            table.find(ignore, "Z") and 0 or vec.Z
-        )
-    end
-    return (adjust(a) - adjust(b)).Magnitude
-end
 
 --[[local success, MutationHandler = pcall(function()
     return require(_G.replicatedStorage.Modules.MutationHandler)
