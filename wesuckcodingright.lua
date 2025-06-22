@@ -45,6 +45,17 @@ _G.hasAnyMutation = function(obj, mutationList) if not obj or not obj.GetAttribu
 
 _G.togglePrompts = function(enabled) for _, prompt in ipairs(_G.Farms:GetDescendants()) do if prompt:IsA("ProximityPrompt") and prompt.Enabled ~= enabled then prompt.Enabled = enabled end end end
 
+_G.hidePlantVisualEffects = function(hide)
+    if not _G.Farms then return end
+
+    local transparencyLevel = hide and 1 or 0.5
+
+    for _, descendant in ipairs(_G.Farms:GetDescendants()) do
+        if descendant:IsA("ParticleEmitter") then descendant.Enabled = not hide
+        elseif descendant.Name == "FrozenShell" and descendant:IsA("BasePart") then descendant.Transparency = transparencyLevel end
+    end
+end 
+
 --[[local success, MutationHandler = pcall(function()
     return require(_G.replicatedStorage.Modules.MutationHandler)
 end)
