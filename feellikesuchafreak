@@ -6,7 +6,7 @@ functions.services = {}
 
 functions.getService = function(s) if not functions.services[s] then functions.services[s] = cloneref(game:GetService(s)) end return functions.services[s] end
 functions.loadedModules = {}
-functions.Farms = functions.getService("Farms")
+functions.Farms = workspace:WaitForChild("Farm")
 functions.isShowNotification =  true
 functions.notify=function(m,d,i)if not functions.isShowNotification then return true end;task.spawn(function()local s=pcall(function()if WindUI and typeof(WindUI.Notify)=="function"then WindUI:Notify({Title=gameData.Name.." Hub",Content=m,Duration=d or 3,Icon=i or"info"})else error("WindUI unavailable")end end)if not s then warn("Custom notification failed. Trying Roblox notification:",m)local f=pcall(function()functions.getService("StarterGui"):SetCore("SendNotification",{Title=gameData.Name.." Hub",Text=m,Duration=d or 3,Icon=i or nil})end)if not f then warn("Roblox notification also failed. Printing instead:")print("[NOTIFY]",m)end end end)end
 functions.extractDigitsFromText = function(t) return tonumber(t:match("%d+")) or 0 end
