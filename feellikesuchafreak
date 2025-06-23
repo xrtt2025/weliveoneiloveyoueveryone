@@ -1,0 +1,48 @@
+local blankfunction=function(...)return...end
+local cloneref=cloneref or blankfunction
+
+local functions = {}
+functions.services = {}
+
+functions.getService = function(s) if not functions.services[s] then functions.services[s] = cloneref(game:GetService(s)) end return functions.services[s] end
+functions.loadedModules = {}
+functions.Farms = functions.getService("Farms")
+functions.isShowNotification =  true
+functions.notify=function(m,d,i)if not functions.isShowNotification then return true end;task.spawn(function()local s=pcall(function()if WindUI and typeof(WindUI.Notify)=="function"then WindUI:Notify({Title=gameData.Name.." Hub",Content=m,Duration=d or 3,Icon=i or"info"})else error("WindUI unavailable")end end)if not s then warn("Custom notification failed. Trying Roblox notification:",m)local f=pcall(function()functions.getService("StarterGui"):SetCore("SendNotification",{Title=gameData.Name.." Hub",Text=m,Duration=d or 3,Icon=i or nil})end)if not f then warn("Roblox notification also failed. Printing instead:")print("[NOTIFY]",m)end end end)end
+functions.extractDigitsFromText = function(t) return tonumber(t:match("%d+")) or 0 end
+functions.getPlayerMoney = function() return functions.getService("Players").LocalPlayer.leaderstats.Sheckles.Value end
+functions.tweenService       =functions.getService("TweenService")
+functions.runService         =functions.getService("RunService")
+functions.players            =functions.getService("Players")
+functions.userInputService   =functions.getService("UserInputService")
+functions.guiService         =functions.getService("GuiService")
+functions.replicatedStorage  =functions.getService("ReplicatedStorage")
+functions.virtualInputManager=functions.getService("VirtualInputManager")
+functions.coreGui            =functions.getService("CoreGui")
+functions.lighting           =functions.getService("Lighting")
+functions.httpService        =functions.getService("HttpService")
+functions.teleportService    =functions.getService("TeleportService")
+functions.marketplaceService =functions.getService("MarketplaceService")
+functions.collectionService  =functions.getService("CollectionService")
+functions.terrain            =workspace and workspace.Terrain
+functions.Connections        = {}
+
+functions.seedList = {"Cherry Blossom Seed", "Daffodil Seed", "Coconut Seed", "Lumira", "Crocus", "Easter Egg Seed", "Traveler's Fruit", "Apple Seed", "Dandelion", "Cocovine", "Red Lollipop Seed", "Succulent Seed", "Raspberry Seed", "Cranberry Seed", "Loquat Seed", "Dragon Pepper", "Moon Blossom Seed", "Pineapple Seed", "Blood Banana Seed", "Crimson Vine Seed", "Foxglove", "Nectar Thorn", "Pumpkin Seed", "Pepper Seed", "Cacao Seed", "Lotus Seed", "Orange Tulip", "Cursed Fruit Seed", "Carrot Seed", "Mango Seed", "Lilac", "Elephant Ears", "Lavender", "Hive Fruit", "Soul Fruit Seed", "Moonglow Seed", "Avocado Seed", "Mint Seed", "Noble Flower", "Tomato Seed", "Ice Cream Bean Seed", "Nightshade Seed", "Starfruit Seed", "Passionfruit Seed", "Lemon Seed", "Pear Seed", "Blueberry Seed", "Candy Blossom Seed", "Purple Dahlia Seed", "Parasol Flower", "Strawberry Seed", "Green Apple", "Glowshroom Seed", "Sunflower", "Banana Seed", "Rose", "Peach Seed", "Bee Balm", "Bendboo", "Mushroom Seed", "Violet Corn", "Candy Sunflower Seed", "Bamboo Seed", "Nectarine", "Ember Lily", "Suncoil", "Pink Lily Seed", "Moon Mango Seed", "Eggplant Seed", "Durian Seed", "Papaya Seed", "Prickly Pear", "Corn Seed", "Honeysuckle", "Venus Fly Trap Seed", "Dragon Fruit Seed", "Moon Melon Seed", "Moonflower Seed", "Chocolate Carrot Seed", "Watermelon Seed", "Celestiberry Seed", "Cactus Seed", "Sugar Apple", "Nectarshade", "Beanstalk Seed", "Grape Seed", "Manuka Flower" }
+table.sort( functions.seedList )
+functions.sortedMutations = {"Alienlike", "Bloodlit", "Burnt", "Celestial", "Chilled", "Choc", "Cooked", "Dawnbound", "Disco", "Frozen", "Galactic", "Heavenly", "HoneyGlazed", "Meteoric", "Molten", "Moonlit", "Paradisal", "Plasma", "Pollinated", "Shocked", "Sundried", "Twisted", "Verdant", "Voidtouched", "Wet", "Windstruck", "Zombified"}
+table.sort( functions.sortedMutations )
+
+functions.addConnection=function(n,c)if not n or not c then return end;if functions.Connections[n]then pcall(function()functions.Connections[n]:Disconnect()end)end;functions.Connections[n]=c end
+functions.cleanupConnections=function(n)if n then if functions.Connections[n]then pcall(function()functions.Connections[n]:Disconnect()end)functions.Connections[n]=nil end else for k,v in pairs(functions.Connections)do if v then pcall(function()v:Disconnect()end)end end;functions.Connections={}end end
+functions.safeGet=function(i,...)for _,n in ipairs({...})do i=i:WaitForChild(n,10)if not i then return nil end end return i end
+functions.waitFor=function(n,p)return p:WaitForChild(n,60)end
+functions.getModule=function(p,n)if not functions.loadedModules[n]then local m=p:FindFirstChild(n)if not m or not m:IsA("ModuleScript")then warn("❌ Module not found or invalid -> Trash exec",n)return nil end;local s,r=pcall(require,m)if s then functions.loadedModules[n]=r else warn("❌ Failed to load module -> Trash exec",n,r)return nil end end;return functions.loadedModules[n]end
+functions.GetTool = function(c)return c and c:FindFirstChildOfClass("Tool")end
+functions.getHumanoidRootPart=function()local p=functions.players.LocalPlayer if p and p.Character then return p.Character:FindFirstChild("HumanoidRootPart")end return nil end
+functions.refreshPlayerList = function(d)local t={}for _,p in ipairs(game.Players:GetPlayers())do if p~=functions.players.LocalPlayer then table.insert(t,p.Name)end end table.sort(t)d:Refresh(t)end
+functions.parseTargetFruits = function(d)local u,p={},{};for _,f in ipairs(d.Value or {})do local c=f:match("^%s*(.-)%s*$"):lower()if c~=""then u[c]=true end end;for n in pairs(u)do table.insert(p,n)end;return p end
+functions.hasAnyMutation = function(obj, m)return obj and obj.GetAttributes and (function()for a in pairs(obj:GetAttributes())do local l=string.lower(a)if type(m)=="table"then for k,v in pairs(m)do if v and l==string.lower(k)then return true end end;for _,v in ipairs(m)do if l==string.lower(v)then return true end end end end;return false end)()or false end
+functions.togglePrompts = function(enabled) for _, prompt in ipairs(functions.Farms:GetDescendants()) do if prompt:IsA("ProximityPrompt") and prompt.Enabled ~= enabled then prompt.Enabled = enabled end end end
+functions.hidePlantVisualEffects=function(hide)if not functions.Farms then return end;local t=hide and 1 or 0.5;for _,d in ipairs(functions.Farms:GetDescendants())do if d:IsA("ParticleEmitter")then d.Enabled=not hide elseif d.Name=="FrozenShell"and d:IsA("BasePart")then d.Transparency=t end end end
+task.defer(function()local function t(e)if not e then return end;local h=functions.getHumanoidRootPart()if not h then return end;if not pcall(function()firetouchinterest(h,e,0)task.wait()firetouchinterest(h,e,1)end)then warn("Touch function failed - firetouchinterest may not be available")end end;local p=functions.players.LocalPlayer;workspace.ChildAdded:Connect(function(c)if not c:IsA("Model")then return end;task.wait(1)if c:GetAttribute("SEED_GIVEN")and c:GetAttribute("OWNER")==p.Name then task.wait(2)local part=c:FindFirstChildOfClass("Part")if not part then return end;t(part)end end)end)
+return functions
