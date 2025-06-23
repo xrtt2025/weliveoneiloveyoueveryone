@@ -29,6 +29,41 @@ table.sort( functions.seedList )
 functions.sortedMutations = {"Alienlike", "Bloodlit", "Burnt", "Celestial", "Chilled", "Choc", "Cooked", "Dawnbound", "Disco", "Frozen", "Galactic", "Heavenly", "HoneyGlazed", "Meteoric", "Molten", "Moonlit", "Paradisal", "Plasma", "Pollinated", "Shocked", "Sundried", "Twisted", "Verdant", "Voidtouched", "Wet", "Windstruck", "Zombified"}
 table.sort( functions.sortedMutations )
 
+functions.mutationColors = {
+    ["Wet"]         = Color3.fromRGB(64, 164, 223),
+    ["Chilled"]     = Color3.fromRGB(135, 206, 250),
+    ["Choc"]        = Color3.fromRGB(92, 64, 51),
+    ["Moonlit"]     = Color3.fromRGB(153, 141, 255),
+    ["Pollinated"]  = Color3.fromRGB(255, 170, 0),
+    ["Bloodlit"]    = Color3.fromRGB(200, 0, 0),
+    ["Plasma"]      = Color3.fromRGB(208, 43, 137),
+    ["HoneyGlazed"] = Color3.fromRGB(255, 204, 0),
+    ["Heavenly"]    = Color3.fromRGB(255, 249, 160),
+    ["Frozen"]      = Color3.fromRGB(108, 184, 255),
+    ["Zombified"]   = Color3.fromRGB(128, 199, 127),
+    ["Rainbow"]     = Color3.fromRGB(255, 105, 180),
+    ["Shocked"]     = Color3.fromRGB(255, 255, 100),
+    ["Celestial"]   = Color3.fromRGB(255, 0, 255),
+    ["Disco"]       = Color3.fromRGB(255, 105, 180),
+    ["Voidtouched"] = Color3.fromRGB(225, 0, 255),
+    ["Dawnbound"]   = Color3.fromRGB(255, 213, 0),
+    ["Burnt"]       = Color3.fromRGB(40, 40, 40),
+    ["Twisted"]     = Color3.fromRGB(191, 191, 191),
+    ["Cooked"]      = Color3.fromRGB(210, 120, 60),
+    ["Molten"]      = Color3.fromRGB(223, 100, 0),
+    ["Beenaded"]    = Color3.fromRGB(179, 229, 252),
+    ["Gold"]        = Color3.fromRGB(255, 215, 0),
+    ["Windstruck"]  = Color3.fromRGB(162, 185, 209),
+    ["Meteoric"]    = Color3.fromRGB(73, 29, 193),
+    ["Alienlike"]   = Color3.fromRGB(0, 223, 197),
+    ["Galactic"]    = Color3.fromRGB(243, 148, 255),
+    ["Paradisal"]   = Color3.fromRGB(176, 240, 0),
+    ["Plasma"]      = Color3.fromRGB(208, 43, 137),
+    ["Sundried"]    = Color3.fromRGB(207, 93, 0),
+    ["Verdant"]     = Color3.fromRGB(34, 139, 34),
+}
+
+
 functions.waitFor=function(n,p)return p:WaitForChild(n,60)end
 functions.getModule=function(p,n)if not functions.loadedModules[n]then local m=p:FindFirstChild(n)if not m or not m:IsA("ModuleScript")then warn("❌ Module not found or invalid -> Trash exec",n)return nil end;local s,r=pcall(require,m)if s then functions.loadedModules[n]=r else warn("❌ Failed to load module -> Trash exec",n,r)return nil end end;return functions.loadedModules[n]end
 functions.GetTool = function(c)return c and c:FindFirstChildOfClass("Tool")end
