@@ -120,6 +120,51 @@ functions.setUniversalClipboard = function(text)
     return false
 end
 
+functions.getUniversalHWID = function()
+    local function safeCall(fn)
+        if typeof(fn) == "function" then
+            local success, result = pcall(fn)
+            if success and result and result ~= "" then
+                return tostring(result)
+            end
+        end
+        return nil
+    end
+
+    local hwid = nil
+
+    local hwid_methods = {
+        function()
+            local success, result = pcall(function() return gethwid end)
+            return success and typeof(result) == "function" and result() or nil
+        end,
+        function()
+            local success, result = pcall(function() return gethardwareid end)
+            return success and typeof(result) == "function" and result() or nil
+        end,
+        function()
+            local success, result = pcall(function()
+                return game:GetService("RbxAnalyticsService"):GetClientId()
+            end)
+            return success and result or nil
+        end,
+        function()
+            local success, result = pcall(function()
+                local player = game:GetService("Players").LocalPlayer
+                return player and player.Name .. "_" .. game.JobId or nil
+            end)
+            return success and result or nil
+        end
+    }
+
+    for _, method in ipairs(hwid_methods) do
+        hwid = safeCall(method)
+        if hwid then break end
+    end
+
+    return hwid or ("fallback-hwid-" .. tostring(tick()))
+end
+
 
 task.defer(function()local function t(e)if not e then return end;local h=functions.getHumanoidRootPart()if not h then return end;if not pcall(function()firetouchinterest(h,e,0)task.wait()firetouchinterest(h,e,1)end)then warn("Touch function failed - firetouchinterest may not be available")end end;local p=functions.players.LocalPlayer;workspace.ChildAdded:Connect(function(c)if not c:IsA("Model")then return end;task.wait(1)if c:GetAttribute("SEED_GIVEN")and c:GetAttribute("OWNER")==p.Name then task.wait(2)local part=c:FindFirstChildOfClass("Part")if not part then return end;t(part)end end)end)
 return functions
