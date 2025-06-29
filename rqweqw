@@ -171,6 +171,84 @@ functions.getUniversalHWID = function()
     return hwid or ("fallback-hwid-" .. tostring(tick()))
 end
 
+local BILLBOARD_SIZE = UDim2.new(0, 200, 0, 50)
+local BILLBOARD_OFFSET = Vector3.new(0, 6, 0) 
+
+functions.CreateHatchingBillboard = function(egg)
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "HatchingPetBillboard"
+    billboard.Adornee = egg
+    billboard.Size = BILLBOARD_SIZE
+    billboard.StudsOffset = BILLBOARD_OFFSET
+    billboard.AlwaysOnTop = false
+    billboard.LightInfluence = 0
+    billboard.MaxDistance = 150
+    billboard.Enabled = true
+    billboard.Parent = egg
+    
+    -- Background frame
+    local background = Instance.new("Frame")
+    background.Name = "Background"
+    background.Size = UDim2.new(1, 0, 1, 0)
+    background.BackgroundColor3 = Color3.fromRGB(0, 200, 0) 
+    background.BackgroundTransparency = 0.2
+    background.BorderSizePixel = 0
+    background.Parent = billboard
+    
+    -- Rounded corners
+    local uiCorner = Instance.new("UICorner")
+    uiCorner.CornerRadius = UDim.new(0, 8)
+    uiCorner.Parent = background
+    
+    -- Border stroke
+    local uiStroke = Instance.new("UIStroke")
+    uiStroke.Color = Color3.fromRGB(255, 255, 255)
+    uiStroke.Thickness = 2
+    uiStroke.Parent = background
+    
+    -- Padding
+    local uiPadding = Instance.new("UIPadding")
+    uiPadding.PaddingTop = UDim.new(0, 4)
+    uiPadding.PaddingBottom = UDim.new(0, 4)
+    uiPadding.PaddingLeft = UDim.new(0, 8)
+    uiPadding.PaddingRight = UDim.new(0, 8)
+    uiPadding.Parent = background
+    
+    -- Text label
+    local label = Instance.new("TextLabel")
+    label.Name = "HatchingPetLabel"
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    label.TextStrokeTransparency = 0.3
+    label.TextWrapped = true
+    label.Text = "READY TO HATCH!"
+    label.Parent = background
+    
+    return billboard
+end
+
+functions.UpdateBillboardText = function(billboard, petName)
+                local background = billboard:FindFirstChild("Background")
+                if background then
+                    local label = background:FindFirstChild("HatchingPetLabel")
+                    if label then
+                        local displayName = petName or "Unknown Pet"
+                        label.Text = displayName
+                    end
+                end
+            end
+
+functions.RemoveEggESP = function(egg)
+                local billboard = egg:FindFirstChild("HatchingPetBillboard")
+                if billboard then
+                    billboard:Destroy()
+                end
+            end
+
 
 task.defer(function()local function t(e)if not e then return end;local h=functions.getHumanoidRootPart()if not h then return end;if not pcall(function()firetouchinterest(h,e,0)task.wait()firetouchinterest(h,e,1)end)then warn("Touch function failed - firetouchinterest may not be available")end end;local p=functions.players.LocalPlayer;workspace.ChildAdded:Connect(function(c)if not c:IsA("Model")then return end;task.wait(1)if c:GetAttribute("SEED_GIVEN")and c:GetAttribute("OWNER")==p.Name then task.wait(2)local part=c:FindFirstChildOfClass("Part")if not part then return end;t(part)end end)end)
 return functions
