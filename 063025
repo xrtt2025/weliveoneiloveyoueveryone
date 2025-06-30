@@ -349,7 +349,7 @@ functions.waitForMachineIdle = function(machine, machineId)
     while true do
         task.wait(2) -- Increased wait time for better performance
         local _, _, _, _, data = functions.getPlayerData()
-        local machineData = data and data.CraftingData and data.CraftingData.GlobalCraftingObjectData
+        local machineData = data and data[machineId] and data[machineId].MachineData
 
         -- Claim any completed jobs first
         local claimed = functions.claimCompletedJobs(machineData, machine, machineId, cgo)
