@@ -249,13 +249,19 @@ functions.RemoveEggESP = function(egg)
                 end
             end
 
--- functions.lua - Extracted reusable functions
-
+-- Service and data references (these should be set from your main script)
 functions.CraftingService = nil
 functions.craftingData = nil
 functions.craftingObjectRegistry = nil
 functions.dataService = nil
 functions.localPlayerBag = nil
+
+-- Add safety check function
+functions.isInitialized = function()
+    return functions.CraftingService ~= nil and 
+           functions.dataService ~= nil and 
+           functions.localPlayerBag ~= nil
+end
 
 -- Workbench configuration
 functions.WORKBENCH_CONFIG = {
@@ -275,21 +281,41 @@ functions.WORKBENCH_CONFIG = {
 
 -- Get player data
 functions.getPlayerData = function()
-    local data = functions.dataService:GetData()
+    if not functions.isInitialized() then
+        warn("Functions not initialized!")
+        return nil, 0, 0, nil
+    end
+    
+    local success, data = pcall(function()
+        return functions.dataService:GetData()
+    end)
+    
+    if not success then
+        warn("Failed to get player data:", data)
+        return nil, 0, 0, nil
+    end
+    
     return data, 
-           data and data.Sheckles, 
-           data and data.SpecialCurrency and data.SpecialCurrency.Honey, 
+           data and data.Sheckles or 0, 
+           data and data.SpecialCurrency and data.SpecialCurrency.Honey or 0, 
            data and data.CraftingData
 end
 
 -- Send notification
 functions.sendNotification = function(title, text)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = title,
-        Text = text,
-        Icon = "rbxassetid://99835865028056",
-        Duration = 5
-    })
+    local success, err = pcall(function()
+        functions.getService("StarterGui"):SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Icon = "rbxassetid://99835865028056",
+            Duration = 5
+        })
+    end)
+    
+    if not success then
+        warn("Failed to send notification:", err)
+        print("[" .. title .. "] " .. text) -- Fallback to print
+    end
 end
 
 -- Get crafting object data
@@ -316,11 +342,15 @@ end
 functions.getCraftTable = function(workbenchType)
     local config = functions.WORKBENCH_CONFIG[workbenchType]
     if not config then
+        warn("Invalid workbench type:", workbenchType)
         return nil
     end
     
-    local craftTable = workspace.CraftingTables[config.workspacePath]
-    if not craftTable then
+    local success, craftTable = pcall(function()
+        return workspace.CraftingTables[config.workspacePath]
+    end)
+    
+    if not success or not craftTable then
         warn("Could not find craft table at workspace.CraftingTables." .. config.workspacePath)
         return nil
     end
