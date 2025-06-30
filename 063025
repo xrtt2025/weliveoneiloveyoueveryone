@@ -1,0 +1,462 @@
+local blankfunction=function(...)return...end
+local cloneref=cloneref or blankfunction
+
+local functions = {}
+functions.services = {}
+
+functions.getService = function(s) if not functions.services[s] then functions.services[s] = cloneref(game:GetService(s)) end return functions.services[s] end
+functions.loadedModules = {}
+functions.Farms = workspace:WaitForChild("Farm")
+functions.extractDigitsFromText = function(t) return tonumber(t:match("%d+")) or 0 end
+functions.getPlayerMoney = function() return functions.getService("Players").LocalPlayer.leaderstats.Sheckles.Value end
+functions.tweenService       =functions.getService("TweenService")
+functions.runService         =functions.getService("RunService")
+functions.players            =functions.getService("Players")
+functions.userInputService   =functions.getService("UserInputService")
+functions.guiService         =functions.getService("GuiService")
+functions.replicatedStorage  =functions.getService("ReplicatedStorage")
+functions.virtualInputManager=functions.getService("VirtualInputManager")
+functions.coreGui            =functions.getService("CoreGui")
+functions.lighting           =functions.getService("Lighting")
+functions.httpService        =functions.getService("HttpService")
+functions.teleportService    =functions.getService("TeleportService")
+functions.marketplaceService =functions.getService("MarketplaceService")
+functions.collectionService  =functions.getService("CollectionService")
+functions.terrain            =workspace and workspace.Terrain
+
+functions.seedList = {"Aloe Vera Seed", "Apple Seed", "Avocado Seed", "Bamboo Seed", "Banana Seed", "Beanstalk Seed", "Bee Balm", "Bell Pepper Seed", "Bendboo", "Blood Banana Seed", "Blueberry Seed", "Burning Bud", "Cacao Seed", "Cactus Seed", "Candy Blossom Seed", "Candy Sunflower Seed", "Cantaloupe Seed", "Carrot Seed", "Cauliflower Seed", "Celestiberry Seed", "Cherry Blossom Seed", "Chocolate Carrot Seed", "Coconut Seed", "Cocovine", "Corn Seed", "Cranberry Seed", "Crimson Vine Seed", "Crocus", "Cursed Fruit Seed", "Daffodil Seed", "Dandelion", "Delphinium Seed", "Dragon Fruit Seed", "Dragon Pepper", "Durian Seed", "Easter Egg Seed", "Eggplant Seed", "Elephant Ears", "Ember Lily", "Feijoa Seed", "Foxglove", "Glowshroom Seed", "Grape Seed", "Green Apple Seed", "Guanabana Seed", "Hive Fruit", "Honeysuckle", "Ice Cream Bean Seed", "Kiwi Seed", "Lavender", "Lemon Seed", "Lilac", "Lily of the Valley Seed", "Lime Seed", "Loquat Seed", "Lotus Seed", "Lumira", "Mango Seed", "Manuka Flower", "Mint Seed", "Moon Blossom Seed", "Moon Mango Seed", "Moon Melon Seed", "Moonflower Seed", "Moonglow Seed", "Mushroom Seed", "Nectar Thorn", "Nectarine", "Nectarshade", "Nightshade Seed", "Noble Flower", "Orange Tulip", "Papaya Seed", "Parasol Flower", "Passionfruit Seed", "Peace Lily Seed", "Peach Seed", "Pear Seed", "Pepper Seed", "Pineapple Seed", "Pink Lily Seed", "Pitcher Plant", "Prickly Pear Seed", "Pumpkin Seed", "Purple Dahlia Seed", "Rafflesia Seed", "Raspberry Seed", "Red Lollipop Seed", "Rose", "Rosy Delight Seed", "Soul Fruit Seed", "Starfruit Seed", "Strawberry Seed", "Succulent Seed", "Sugar Apple", "Suncoil", "Sunflower", "Tomato Seed", "Traveler's Fruit", "Venus Fly Trap Seed", "Violet Corn", "Watermelon Seed", "White Mulberry Seed", "Wild Carrot Seed"}
+
+table.sort( functions.seedList )
+
+functions.sortedMutations = {"Alienlike", "Aurora", "Bloodlit", "Burnt", "Celestial", "Chilled", "Choc", "Cloudtouched", "Cooked", "Dawnbound", "Disco", "Drenched", "Fried", "Frozen", "Galactic", "Heavenly", "HoneyGlazed", "Meteoric", "Molten", "Moonlit", "Paradisal", "Plasma", "Pollinated", "Shocked", "Sundried", "Twisted", "Verdant", "Voidtouched", "Wet", "Wiltproof", "Windstruck", "Zombified"}
+
+table.sort( functions.sortedMutations )
+
+
+
+functions.mutationColors = {
+    ["Alienlike"] = Color3.fromRGB(0, 223, 197),
+    ["Aurora"] = Color3.fromRGB(99, 89, 175),
+    ["Bloodlit"] = Color3.fromRGB(200, 0, 0),
+    ["Burnt"] = Color3.fromRGB(40, 40, 40),
+    ["Celestial"] = Color3.fromRGB(255, 0, 255),
+    ["Chilled"] = Color3.fromRGB(135, 206, 250),
+    ["Choc"] = Color3.fromRGB(92, 64, 51),
+    ["Cloudtouched"] = Color3.fromRGB(225, 255, 255),
+    ["Cooked"] = Color3.fromRGB(210, 120, 60),
+    ["Dawnbound"] = Color3.fromRGB(255, 213, 0),
+    ["Disco"] = Color3.fromRGB(255, 105, 180),
+    ["Drenched"] = Color3.fromRGB(0, 55, 228),
+    ["Fried"] = Color3.fromRGB(223, 110, 34),
+    ["Frozen"] = Color3.fromRGB(108, 184, 255),
+    ["Galactic"] = Color3.fromRGB(243, 148, 255),
+    ["Heavenly"] = Color3.fromRGB(255, 249, 160),
+    ["HoneyGlazed"] = Color3.fromRGB(255, 204, 0),
+    ["Meteoric"] = Color3.fromRGB(73, 29, 193),
+    ["Molten"] = Color3.fromRGB(223, 100, 0),
+    ["Moonlit"] = Color3.fromRGB(153, 141, 255),
+    ["Paradisal"] = Color3.fromRGB(176, 240, 0),
+    ["Plasma"] = Color3.fromRGB(208, 43, 137),
+    ["Pollinated"] = Color3.fromRGB(255, 170, 0),
+    ["Shocked"] = Color3.fromRGB(255, 255, 100),
+    ["Sundried"] = Color3.fromRGB(207, 93, 0),
+    ["Twisted"] = Color3.fromRGB(191, 191, 191),
+    ["Verdant"] = Color3.fromRGB(34, 139, 34),
+    ["Voidtouched"] = Color3.fromRGB(225, 0, 255),
+    ["Wet"] = Color3.fromRGB(64, 164, 223),
+    ["Wiltproof"] = Color3.fromRGB(0, 222, 155),
+    ["Windstruck"] = Color3.fromRGB(162, 185, 209),
+    ["Zombified"] = Color3.fromRGB(128, 199, 127),
+}
+
+
+functions.waitFor=function(n,p)return p:WaitForChild(n,60)end
+functions.getModule=function(p,n)if not functions.loadedModules[n]then local m=p:FindFirstChild(n)if not m or not m:IsA("ModuleScript")then warn("❌ Module not found or invalid -> Trash exec",n)return nil end;local s,r=pcall(require,m)if s then functions.loadedModules[n]=r else warn("❌ Failed to load module -> Trash exec",n,r)return nil end end;return functions.loadedModules[n]end
+functions.GetTool = function(c)return c and c:FindFirstChildOfClass("Tool")end
+functions.getHumanoidRootPart=function()local p=functions.players.LocalPlayer if p and p.Character then return p.Character:FindFirstChild("HumanoidRootPart")end return nil end
+functions.refreshPlayerList = function(d)local t={}for _,p in ipairs(game.Players:GetPlayers())do if p~=functions.players.LocalPlayer then table.insert(t,p.Name)end end table.sort(t)d:Refresh(t)end
+functions.parseTargetFruits = function(d)local u,p={},{};for _,f in ipairs(d.Value or {})do local c=f:match("^%s*(.-)%s*$"):lower()if c~=""then u[c]=true end end;for n in pairs(u)do table.insert(p,n)end;return p end
+functions.hasAnyMutation = function(obj, m)return obj and obj.GetAttributes and (function()for a in pairs(obj:GetAttributes())do local l=string.lower(a)if type(m)=="table"then for k,v in pairs(m)do if v and l==string.lower(k)then return true end end;for _,v in ipairs(m)do if l==string.lower(v)then return true end end end end;return false end)()or false end
+functions.togglePrompts = function(enabled) for _, prompt in ipairs(functions.Farms:GetDescendants()) do if prompt:IsA("ProximityPrompt") and prompt.Enabled ~= enabled then prompt.Enabled = enabled end end end
+functions.hidePlantVisualEffects=function(hide)if not functions.Farms then return end;local t=hide and 1 or 0.5;for _,d in ipairs(functions.Farms:GetDescendants())do if d:IsA("ParticleEmitter")then d.Enabled=not hide elseif d.Name=="FrozenShell"and d:IsA("BasePart")then d.Transparency=t end end end
+functions.makeHttpRequest=function(requestData)
+    local request_functions = {
+        request,
+        http_request,
+        syn and syn.request,
+        http and http.request,
+        fluxus and fluxus.request,
+        function(data)
+            if functions.httpService.RequestInternal then
+                return functions.httpService:RequestInternal(data)
+            end
+        end
+    }
+
+    for _, func in pairs(request_functions) do
+        if func then
+            local success, response = pcall(func, requestData)
+            if success and response then
+                return response
+            end
+        end
+    end
+
+    return nil
+end
+
+functions.setUniversalClipboard = function(text)
+    local clipboard_functions = {
+        setclipboard,
+        toclipboard,
+        writeclipboard,
+        syn and syn.write_clipboard,
+        Clipboard and Clipboard.set
+    }
+
+    for _, func in pairs(clipboard_functions) do
+        if func then
+            local success = pcall(func, text)
+            if success then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+functions.getUniversalHWID = function()
+    local function safeCall(fn)
+        if typeof(fn) == "function" then
+            local success, result = pcall(fn)
+            if success and result and result ~= "" then
+                return tostring(result)
+            end
+        end
+        return nil
+    end
+
+    local hwid = nil
+
+    local hwid_methods = {
+        function()
+            local success, result = pcall(function() return gethwid end)
+            return success and typeof(result) == "function" and result() or nil
+        end,
+        function()
+            local success, result = pcall(function() return gethardwareid end)
+            return success and typeof(result) == "function" and result() or nil
+        end,
+        function()
+            local success, result = pcall(function()
+                return game:GetService("RbxAnalyticsService"):GetClientId()
+            end)
+            return success and result or nil
+        end,
+        function()
+            local success, result = pcall(function()
+                local player = game:GetService("Players").LocalPlayer
+                return player and player.Name .. "_" .. game.JobId or nil
+            end)
+            return success and result or nil
+        end
+    }
+
+    for _, method in ipairs(hwid_methods) do
+        hwid = safeCall(method)
+        if hwid then break end
+    end
+
+    return hwid or ("fallback-hwid-" .. tostring(tick()))
+end
+
+local BILLBOARD_SIZE = UDim2.new(0, 200, 0, 50)
+local BILLBOARD_OFFSET = Vector3.new(0, 6, 0) 
+
+functions.CreateHatchingBillboard = function(egg)
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "HatchingPetBillboard"
+    billboard.Adornee = egg
+    billboard.Size = BILLBOARD_SIZE
+    billboard.StudsOffset = BILLBOARD_OFFSET
+    billboard.AlwaysOnTop = false
+    billboard.LightInfluence = 0
+    billboard.MaxDistance = 150
+    billboard.Enabled = true
+    billboard.Parent = egg
+    
+    -- Background frame
+    local background = Instance.new("Frame")
+    background.Name = "Background"
+    background.Size = UDim2.new(1, 0, 1, 0)
+    background.BackgroundColor3 = Color3.fromRGB(0, 200, 0) 
+    background.BackgroundTransparency = 0.2
+    background.BorderSizePixel = 0
+    background.Parent = billboard
+    
+    -- Rounded corners
+    local uiCorner = Instance.new("UICorner")
+    uiCorner.CornerRadius = UDim.new(0, 8)
+    uiCorner.Parent = background
+    
+    -- Border stroke
+    local uiStroke = Instance.new("UIStroke")
+    uiStroke.Color = Color3.fromRGB(255, 255, 255)
+    uiStroke.Thickness = 2
+    uiStroke.Parent = background
+    
+    -- Padding
+    local uiPadding = Instance.new("UIPadding")
+    uiPadding.PaddingTop = UDim.new(0, 4)
+    uiPadding.PaddingBottom = UDim.new(0, 4)
+    uiPadding.PaddingLeft = UDim.new(0, 8)
+    uiPadding.PaddingRight = UDim.new(0, 8)
+    uiPadding.Parent = background
+    
+    -- Text label
+    local label = Instance.new("TextLabel")
+    label.Name = "HatchingPetLabel"
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    label.TextStrokeTransparency = 0.3
+    label.TextWrapped = true
+    label.Text = "READY TO HATCH!"
+    label.Parent = background
+    
+    return billboard
+end
+
+functions.UpdateBillboardText = function(billboard, petName)
+                local background = billboard:FindFirstChild("Background")
+                if background then
+                    local label = background:FindFirstChild("HatchingPetLabel")
+                    if label then
+                        local displayName = petName or "Unknown Pet"
+                        label.Text = displayName
+                    end
+                end
+            end
+
+functions.RemoveEggESP = function(egg)
+                local billboard = egg:FindFirstChild("HatchingPetBillboard")
+                if billboard then
+                    billboard:Destroy()
+                end
+            end
+
+-- Add these functions to your existing functions.lua file
+
+-- Data and utility functions
+functions.getPlayerData = function()
+    local dataService = require(functions.replicatedStorage.Modules.DataService)
+    local data = dataService:GetData()
+    return data, 
+           data and data.Sheckles, 
+           data and data.SpecialCurrency and data.SpecialCurrency.Honey, 
+           data and data.CraftingData
+end
+
+functions.sendNotification = function(title, text)
+    functions.getService("StarterGui"):SetCore("SendNotification", {
+        Title = title,
+        Text = text,
+        Icon = "rbxassetid://99835865028056",
+        Duration = 5
+    })
+end
+
+-- Workbench configuration
+functions.getWorkbenchConfig = function()
+    return {
+        SeedEventWorkbench = {
+            craftingObjectId = "SeedEventWorkbench",
+            craftingObjectType = "SeedEventWorkbench",
+            machineType = "SeedEventWorkbench",
+            workspacePath = "SeedEventWorkbench"
+        },
+        GearEventWorkbench = {
+            craftingObjectId = "Workbench-1",
+            craftingObjectType = "GearEventWorkbench",
+            machineType = "GearEventWorkbench",
+            workspacePath = "GearEventWorkbench"
+        }
+    }
+end
+
+-- Crafting data functions
+functions.getCraftingObjectData = function(workbenchType)
+    local _, _, _, craftingData = functions.getPlayerData()
+    if not craftingData or not craftingData.GlobalCraftingObjectData then
+        return nil
+    end
+    
+    local config = functions.getWorkbenchConfig()[workbenchType]
+    if not config then
+        return nil
+    end
+    
+    local objectData = craftingData.GlobalCraftingObjectData[config.craftingObjectId]
+    if not objectData or not objectData.MachineData then
+        return nil
+    end
+    
+    return objectData.MachineData[config.machineType]
+end
+
+functions.getCraftTable = function(workbenchType)
+    local config = functions.getWorkbenchConfig()[workbenchType]
+    if not config then
+        return nil
+    end
+    
+    -- Try multiple possible paths for craft tables
+    local possiblePaths = {
+        workspace.CraftingTables[config.workspacePath],
+        workspace.CraftingTables[config.craftingObjectId],
+        workspace:FindFirstChild("CraftingTables") and workspace.CraftingTables:FindFirstChild(config.workspacePath),
+        workspace:FindFirstChild("CraftingObjects") and workspace.CraftingObjects:FindFirstChild(config.workspacePath)
+    }
+    
+    for _, path in ipairs(possiblePaths) do
+        if path then
+            return path
+        end
+    end
+    
+    warn("Could not find craft table for", workbenchType)
+    return nil
+end
+
+-- Recipe building function
+functions.buildRecipeCategories = function()
+    local craftingData = require(functions.replicatedStorage.Data.CraftingData.CraftingRecipeRegistry)
+    local recipes = craftingData.ItemRecipes
+    
+    local seedOptions = {"Off"}
+    local gearOptions = {"Off"}
+    local categorizedRecipes = {}
+
+    for recipeName, recipeData in pairs(recipes) do
+        for _, output in ipairs(recipeData.Outputs or {}) do
+            local outputName = output.ItemData and output.ItemData.ItemName
+            local outputType = output.ItemType
+
+            local workbenchType, targetOptions
+            if outputType == "Seed" or outputType == "Seed Pack" then
+                workbenchType = "SeedEventWorkbench"
+                targetOptions = seedOptions
+            else
+                workbenchType = "GearEventWorkbench"
+                targetOptions = gearOptions
+            end
+
+            if outputName then
+                table.insert(targetOptions, outputName)
+                categorizedRecipes[outputName] = {
+                    requirements = recipeData.Inputs or {},
+                    workbenchType = workbenchType,
+                    CurrencyType = recipeData.Cost and recipeData.Cost.CurrencyType,
+                    Amount = recipeData.Cost and recipeData.Cost.Amount,
+                    rarity = outputType,
+                    recipeName = recipeName
+                }
+            end
+        end
+    end
+    
+    return seedOptions, gearOptions, categorizedRecipes
+end
+
+-- Item and inventory functions
+functions.findItemInBag = function(itemName, localPlayerBag)
+    if not localPlayerBag then
+        return nil
+    end
+    
+    for _, item in ipairs(localPlayerBag:GetChildren()) do
+        if string.lower(item.Name):find(string.lower(itemName), 1, true) then
+            return item
+        end
+    end
+    return nil
+end
+
+functions.waitForCurrency = function(config, itemName, activeCrafting)
+    while activeCrafting[itemName] do
+        local _, sheckles, honey = functions.getPlayerData()
+        
+        if config.CurrencyType == "Sheckles" and sheckles < config.Amount then
+            functions.sendNotification("Auto Craft", "Waiting for Sheckles... (" .. (sheckles or 0) .. "/" .. config.Amount .. ")")
+            task.wait(5)
+        elseif config.CurrencyType == "Honey" and honey < config.Amount then
+            functions.sendNotification("Auto Craft", "Waiting for Honey... (" .. (honey or 0) .. "/" .. config.Amount .. ")")
+            task.wait(5)
+        else
+            break
+        end
+    end
+end
+
+-- Session management
+functions.isSessionActive = function(workbenchType, sessionId, activeSessionIdSeed, activeSessionIdGear)
+    if workbenchType == "SeedEventWorkbench" then
+        return sessionId == activeSessionIdSeed
+    elseif workbenchType == "GearEventWorkbench" then
+        return sessionId == activeSessionIdGear
+    end
+    return false
+end
+
+-- Crafting operations
+functions.cancelCrafting = function(workbenchType, activeWorkbenches, activeCrafting)
+    local CraftingService = require(functions.replicatedStorage.Modules.CraftingService)
+    local activeItem = activeWorkbenches[workbenchType]
+    if activeItem then
+        local craftTable = functions.getCraftTable(workbenchType)
+        if craftTable then
+            pcall(function()
+                CraftingService:Cancel(craftTable, workbenchType)
+            end)
+        end
+        activeCrafting[activeItem] = nil
+        activeWorkbenches[workbenchType] = nil
+        functions.sendNotification("Auto Craft", "Cancelled " .. string.lower(workbenchType:gsub("EventWorkbench", "")) .. " crafting")
+    end
+end
+
+functions.setRecipe = function(craftTable, workbenchType, itemName)
+    local CraftingService = require(functions.replicatedStorage.Modules.CraftingService)
+    return pcall(function()
+        CraftingService:SetRecipe(craftTable, workbenchType, itemName)
+    end)
+end
+
+functions.inputItem = function(craftTable, workbenchType, index, itemData)
+    local CraftingService = require(functions.replicatedStorage.Modules.CraftingService)
+    return pcall(function()
+        CraftingService:InputItem(craftTable, workbenchType, index, itemData)
+    end)
+end
+
+functions.startCraft = function(craftTable, workbenchType)
+    local CraftingService = require(functions.replicatedStorage.Modules.CraftingService)
+    return pcall(function()
+        CraftingService:Craft(craftTable, workbenchType)
+    end)
+end
+
+functions.claimCraft = function(craftTable, workbenchType, slotIndex)
+    local CraftingService = require(functions.replicatedStorage.Modules.CraftingService)
+    return pcall(function()
+        CraftingService:Claim(craftTable, workbenchType, slotIndex or 1)
+    end)
+end
+
+
+task.defer(function()local function t(e)if not e then return end;local h=functions.getHumanoidRootPart()if not h then return end;if not pcall(function()firetouchinterest(h,e,0)task.wait()firetouchinterest(h,e,1)end)then warn("Touch function failed - firetouchinterest may not be available")end end;local p=functions.players.LocalPlayer;workspace.ChildAdded:Connect(function(c)if not c:IsA("Model")then return end;task.wait(1)if c:GetAttribute("SEED_GIVEN")and c:GetAttribute("OWNER")==p.Name then task.wait(2)local part=c:FindFirstChildOfClass("Part")if not part then return end;t(part)end end)end)
+return functions
