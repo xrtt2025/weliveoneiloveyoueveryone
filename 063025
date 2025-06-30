@@ -231,7 +231,7 @@ functions.CreateHatchingBillboard = function(egg)
     return billboard
 end
 
-cgo = functions.getService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
+cgo = functions.replicatedStorage:WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
 
 functions.UpdateBillboardText = function(billboard, petName)
                 local background = billboard:FindFirstChild("Background")
@@ -465,7 +465,7 @@ functions.loadCraftingRecipes = function()
 end
 
 -- Create auto-crafting coroutine
-functions.createAutoCraftingCoroutine = function(machine, machineId, selectedRecipe, outputTable, isActive, v8)
+functions.createAutoCraftingCoroutine = function(machine, machineId, v8, selectedRecipe, outputTable, isActive)
     return coroutine.create(function()
         
         while isActive() do
