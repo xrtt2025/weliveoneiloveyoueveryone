@@ -231,6 +231,8 @@ functions.CreateHatchingBillboard = function(egg)
     return billboard
 end
 
+cgo = functions.getService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
+
 functions.UpdateBillboardText = function(billboard, petName)
                 local background = billboard:FindFirstChild("Background")
                 if background then
@@ -343,11 +345,8 @@ functions.waitForMachineIdle = function(machine, machineId)
     while true do
         task.wait(2) -- Increased wait time for better performance
         local _, _, _, _, data = functions.getPlayerData()
-        local machineData = data and data[machineId] and data[machineId].MachineData
-        
-        -- Get cgo service
-        local cgo = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
-        
+        local machineData = data and data.CraftingData and data.CraftingData.GlobalCraftingObjectData
+
         -- Claim any completed jobs first
         local claimed = functions.claimCompletedJobs(machineData, machine, machineId, cgo)
         
