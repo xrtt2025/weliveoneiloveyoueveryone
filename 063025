@@ -325,6 +325,7 @@ functions.addRecipeItems = function(inputs, inventory, machine, machineId, cgo)
     return true -- All items added successfully
 end
 
+
 functions.claimCompletedJobs = function(machineData, machine, machineId, cgo)
     local claimed = false
     if machineData and machineData[machineId] then
@@ -510,7 +511,7 @@ functions.createAutoCraftingCoroutine = function(machine, machineId, selectedRec
                 
                 task.wait(0.5) -- Small delay after adding items
                 
-                cgo:FireServer("Craft", machine, machineId)
+                cgo:FireServer("Craft", machine, v8)
                 print("Crafting started:", selectedRecipe())
                 
                 -- Wait for this crafting job to complete before starting next
