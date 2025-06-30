@@ -490,7 +490,7 @@ functions.createAutoCraftingCoroutine = function(machine, machineId, selectedRec
                 end
 
                 print("Starting new craft for:", selectedRecipe())
-                cgo:FireServer("SetRecipe", machine, machineId, selectedRecipe())
+                cgo:FireServer("SetRecipe", machine, v8, selectedRecipe())
                 task.wait(0.5) -- Small delay after setting recipe
                 
                 -- Add items and check if successful
