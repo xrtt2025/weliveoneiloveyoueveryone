@@ -494,7 +494,7 @@ functions.createAutoCraftingCoroutine = function(machine, machineId, v8, selecte
                 task.wait(0.5) -- Small delay after setting recipe
                 
                 -- Add items and check if successful
-                local itemsAdded = functions.addRecipeItems(recipe.Inputs, inventory, machine, machineId, cgo)
+                local itemsAdded = functions.addRecipeItems(recipe.Inputs, inventory, machine, v8, cgo)
                 if not itemsAdded then
                     print("Failed to add all required items, retrying...")
                     task.wait(3)
