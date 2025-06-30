@@ -532,7 +532,66 @@ functions.createAutoCraftingCoroutine = function(machine, machineId, selectedRec
     end)
 end
 
+local functions = {}
+local Connections = {}
 
+functions.addConnection = function(name, connection)
+    if not name or not connection then return end
+    if Connections[name] then
+        pcall(function()
+            Connections[name]:Disconnect()
+        end)
+    end
+    Connections[name] = connection
+end
+
+functions.cleanupConnections = function(name)
+    if name then
+        if Connections[name] then
+            pcall(function()
+                Connections[name]:Disconnect()
+            end)
+            Connections[name] = nil
+        end
+    else
+        for k, v in pairs(Connections) do
+            if v then
+                pcall(function()
+                    v:Disconnect()
+                end)
+            end
+        end
+        Connections = {}
+    end
+end
+
+functions.safeGet = function(instance, ...)
+    for _, name in ipairs({...}) do
+        if not instance or not instance:WaitForChild(name, 10) then
+            return nil
+        end
+        instance = instance:WaitForChild(name, 10)
+    end
+    return instance
+end
+
+functions.GetPlayerFarm = function(Player)
+    if not Player then
+        return
+    end
+    for _, Farm in ipairs(functions.Farms:GetChildren()) do
+        local i = Farm:WaitForChild("Important", 60)
+        if i then
+            local d = i:WaitForChild("Data", 60)
+            if d then
+                local o = d:WaitForChild("Owner", 60)
+                if o and o.Value == Player then
+                    return Farm, i, i:WaitForChild("Plants_Physical", 60), i:WaitForChild("Objects_Physical", 60)
+                end
+            end
+        end
+    end
+end
 
 task.defer(function()local function t(e)if not e then return end;local h=functions.getHumanoidRootPart()if not h then return end;if not pcall(function()firetouchinterest(h,e,0)task.wait()firetouchinterest(h,e,1)end)then warn("Touch function failed - firetouchinterest may not be available")end end;local p=functions.players.LocalPlayer;workspace.ChildAdded:Connect(function(c)if not c:IsA("Model")then return end;task.wait(1)if c:GetAttribute("SEED_GIVEN")and c:GetAttribute("OWNER")==p.Name then task.wait(2)local part=c:FindFirstChildOfClass("Part")if not part then return end;t(part)end end)end)
 return functions
