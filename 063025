@@ -532,7 +532,6 @@ functions.createAutoCraftingCoroutine = function(machine, machineId, selectedRec
     end)
 end
 
-local functions = {}
 local Connections = {}
 
 functions.addConnection = function(name, connection)
