@@ -325,8 +325,6 @@ functions.addRecipeItems = function(inputs, inventory, machine, machineId, cgo)
     return true -- All items added successfully
 end
 
-data and data.CraftingData.GlobalCraftingObjectData,
-
 functions.claimCompletedJobs = function(machineData, machine, machineId, cgo)
     local claimed = false
     if machineData and machineData[machineId] then
