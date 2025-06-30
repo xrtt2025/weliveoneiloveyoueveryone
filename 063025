@@ -249,16 +249,6 @@ functions.RemoveEggESP = function(egg)
                 end
             end
 
-functions.hasEnoughCurrency = function(recipe, Sheckles, Honey)
-    local cost = recipe.Cost
-    if cost.CurrencyType == "Sheckles" then
-        return Sheckles >= cost.Amount, "Sheckles"
-    elseif cost.CurrencyType == "Honey" then
-        return Honey >= cost.Amount, "Honey"
-    end
-    return true
-end
-
 functions.getPlayerData = function()
     local dataService = require(game:GetService("ReplicatedStorage").Modules.DataService)
     local data = dataService:GetData() 
