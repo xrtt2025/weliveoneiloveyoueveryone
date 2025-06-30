@@ -325,6 +325,8 @@ functions.addRecipeItems = function(inputs, inventory, machine, machineId, cgo)
     return true -- All items added successfully
 end
 
+data and data.CraftingData.GlobalCraftingObjectData,
+
 functions.claimCompletedJobs = function(machineData, machine, machineId, cgo)
     local claimed = false
     if machineData and machineData[machineId] then
@@ -464,9 +466,8 @@ functions.loadCraftingRecipes = function()
 end
 
 -- Create auto-crafting coroutine
-functions.createAutoCraftingCoroutine = function(machine, machineId, selectedRecipe, outputTable, isActive)
+functions.createAutoCraftingCoroutine = function(machine, machineId, selectedRecipe, outputTable, isActive, v8)
     return coroutine.create(function()
-        local cgo = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
         
         while isActive() do
             task.wait(1)
@@ -474,7 +475,7 @@ functions.createAutoCraftingCoroutine = function(machine, machineId, selectedRec
             local machineData = data and data[machineId] and data[machineId].MachineData
 
             -- First, claim any completed jobs
-            functions.claimCompletedJobs(machineData, machine, machineId, cgo)
+            functions.claimCompletedJobs(machineData, machine, v8, cgo)
             
             -- Wait a moment for the machine data to update after claiming
             task.wait(0.5)
