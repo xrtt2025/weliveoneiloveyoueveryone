@@ -272,12 +272,12 @@ functions.hasEnoughCurrency = function(recipe, Sheckles, Honey)
     return true
 end
 
-functions.isMachineAvailable = function(machineData, machineId)
-    if not machineData or not machineData[machineId] then
+functions.isMachineAvailable = function(machineData, machineId, v8)
+    if not machineData or not machineData[v8] then
         return true -- If no machine data, assume available
     end
     
-    local craftingItems = machineData[machineId].CraftingItems or {}
+    local craftingItems = machineData[v8].CraftingItems or {}
     
     -- Check if there are any items in the machine at all
     if #craftingItems == 0 then
@@ -345,7 +345,7 @@ functions.claimCompletedJobs = function(machineData, machine, machineId, cgo)
 end
 
 
-functions.waitForMachineIdle = function(machine, machineId)
+functions.waitForMachineIdle = function(machine, machineId, v8)
     print("Waiting for machine to become idle...")
     while true do
         task.wait(2) -- Increased wait time for better performance
@@ -353,7 +353,7 @@ functions.waitForMachineIdle = function(machine, machineId)
         local machineData = data and data[machineId] and data[machineId].MachineData
 
         -- Claim any completed jobs first
-        local claimed = functions.claimCompletedJobs(machineData, machine, machineId, cgo)
+        local claimed = functions.claimCompletedJobs(machineData, machine, v8, cgo)
         
         -- If we claimed something, wait a bit more for the machine to update
         if claimed then
@@ -363,7 +363,7 @@ functions.waitForMachineIdle = function(machine, machineId)
         end
         
         -- Check if machine is now available
-        if functions.isMachineAvailable(machineData, machineId) then
+        if functions.isMachineAvailable(machineData, machineId, v8) then
             print("Machine is now idle and ready")
             break
         else
@@ -482,7 +482,7 @@ functions.createAutoCraftingCoroutine = function(machine, machineId, v8, selecte
             machineData = data and data[machineId] and data[machineId].MachineData
 
             -- Check if machine is available for new crafting
-            if functions.isMachineAvailable(machineData, machineId) then
+            if functions.isMachineAvailable(machineData, machineId, v8) then
                 local recipe = outputTable[selectedRecipe()]
                 if not recipe then 
                     print("Recipe not found:", selectedRecipe()) 
@@ -515,10 +515,10 @@ functions.createAutoCraftingCoroutine = function(machine, machineId, v8, selecte
                 print("Crafting started:", selectedRecipe())
                 
                 -- Wait for this crafting job to complete before starting next
-                functions.waitForMachineIdle(machine, machineId)
+                functions.waitForMachineIdle(machine, machineId, v8)
             else
                 print("Machine busy, waiting for completion...")
-                functions.waitForMachineIdle(machine, machineId)
+                functions.waitForMachineIdle(machine, machineId, v8)
             end
         end
         print("Auto-crafting stopped:", selectedRecipe())
