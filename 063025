@@ -249,304 +249,290 @@ functions.RemoveEggESP = function(egg)
                 end
             end
 
--- Service and data references (these should be set from your main script)
-functions.CraftingService = nil
-functions.craftingData = nil
-functions.craftingObjectRegistry = nil
-functions.dataService = nil
-functions.localPlayerBag = nil
-
--- Add safety check function
-functions.isInitialized = function()
-    return functions.CraftingService ~= nil and 
-           functions.dataService ~= nil and 
-           functions.localPlayerBag ~= nil
+functions.hasEnoughCurrency = function(recipe, Sheckles, Honey)
+    local cost = recipe.Cost
+    if cost.CurrencyType == "Sheckles" then
+        return Sheckles >= cost.Amount, "Sheckles"
+    elseif cost.CurrencyType == "Honey" then
+        return Honey >= cost.Amount, "Honey"
+    end
+    return true
 end
 
--- Workbench configuration
-functions.WORKBENCH_CONFIG = {
-    SeedEventWorkbench = {
-        craftingObjectId = "SeedEventWorkbench",
-        craftingObjectType = "SeedEventWorkbench",
-        machineType = "SeedEventWorkbench",
-        workspacePath = "SeedEventCraftingWorkBench"
-    },
-    GearEventWorkbench = {
-        craftingObjectId = "Workbench-1",
-        craftingObjectType = "GearEventWorkbench",
-        machineType = "GearEventWorkbench",
-        workspacePath = "EventCraftingWorkBench"
-    }
-}
-
--- Get player data
 functions.getPlayerData = function()
-    if not functions.isInitialized() then
-        warn("Functions not initialized!")
-        return nil, 0, 0, nil
-    end
-    
-    local success, data = pcall(function()
-        return functions.dataService:GetData()
-    end)
-    
-    if not success then
-        warn("Failed to get player data:", data)
-        return nil, 0, 0, nil
-    end
-    
+    local dataService = require(game:GetService("ReplicatedStorage").Modules.DataService)
+    local data = dataService:GetData() 
     return data, 
-           data and data.Sheckles or 0, 
-           data and data.SpecialCurrency and data.SpecialCurrency.Honey or 0, 
-           data and data.CraftingData
+           data and data.Sheckles, 
+           data and data.SpecialCurrency and data.SpecialCurrency.Honey, 
+           data and data.SpecialCurrency and data.SpecialCurrency.SummerCoins, 
+           data and data.CraftingData.GlobalCraftingObjectData, 
+           data and data.InventoryData
 end
 
--- Send notification
-functions.sendNotification = function(title, text)
-    local success, err = pcall(function()
-        functions.getService("StarterGui"):SetCore("SendNotification", {
-            Title = title,
-            Text = text,
-            Icon = "rbxassetid://99835865028056",
-            Duration = 5
-        })
-    end)
-    
-    if not success then
-        warn("Failed to send notification:", err)
-        print("[" .. title .. "] " .. text) -- Fallback to print
+functions.hasEnoughCurrency = function(recipe, Sheckles, Honey)
+    local cost = recipe.Cost
+    if cost.CurrencyType == "Sheckles" then
+        return Sheckles >= cost.Amount, "Sheckles"
+    elseif cost.CurrencyType == "Honey" then
+        return Honey >= cost.Amount, "Honey"
     end
+    return true
 end
 
--- Get crafting object data
-functions.getCraftingObjectData = function(workbenchType)
-    local _, _, _, craftingData = functions.getPlayerData()
-    if not craftingData or not craftingData.GlobalCraftingObjectData then
-        return nil
+functions.isMachineAvailable = function(machineData, machineId)
+    if not machineData or not machineData[machineId] then
+        return true -- If no machine data, assume available
     end
     
-    local config = functions.WORKBENCH_CONFIG[workbenchType]
-    if not config then
-        return nil
+    local craftingItems = machineData[machineId].CraftingItems or {}
+    
+    -- Check if there are any items in the machine at all
+    if #craftingItems == 0 then
+        return true -- Machine is completely empty
     end
     
-    local objectData = craftingData.GlobalCraftingObjectData[config.craftingObjectId]
-    if not objectData or not objectData.MachineData then
-        return nil
+    -- Check if all jobs are completed
+    for _, job in ipairs(craftingItems) do
+        if not job.IsDone then
+            return false -- There's still an active/pending job
+        end
     end
     
-    return objectData.MachineData[config.machineType]
+    return true -- All jobs are done, machine is ready
 end
 
--- Get craft table
-functions.getCraftTable = function(workbenchType)
-    local config = functions.WORKBENCH_CONFIG[workbenchType]
-    if not config then
-        warn("Invalid workbench type:", workbenchType)
-        return nil
-    end
-    
-    local success, craftTable = pcall(function()
-        return workspace.CraftingTables[config.workspacePath]
-    end)
-    
-    if not success or not craftTable then
-        warn("Could not find craft table at workspace.CraftingTables." .. config.workspacePath)
-        return nil
-    end
-    
-    local objectId = craftTable:GetAttribute("CraftingObjectId")
-    local objectType = craftTable:GetAttribute("CraftingObjectType")
-    
-    if objectId ~= config.craftingObjectId or objectType ~= config.craftingObjectType then
-        warn("Craft table attributes don't match expected values:")
-        warn("Expected:", config.craftingObjectId, config.craftingObjectType)
-        warn("Found:", objectId, objectType)
-    end
-    
-    return craftTable
-end
-
--- Build recipe categories
-functions.buildRecipeCategories = function(recipes)
-    local seedOptions = {"Off"}
-    local gearOptions = {"Off"}
-    local categorizedRecipes = {}
-
-    for recipeName, recipeData in pairs(recipes) do
-        for _, output in ipairs(recipeData.Outputs or {}) do
-            local outputName = output.ItemData and output.ItemData.ItemName
-            local outputType = output.ItemType
-
-            local workbenchType, targetOptions
-            if outputType == "Seed" or outputType == "Seed Pack" then
-                workbenchType = "SeedEventWorkbench"
-                targetOptions = seedOptions
-            else
-                workbenchType = "GearEventWorkbench"
-                targetOptions = gearOptions
+functions.addRecipeItems = function(inputs, inventory, machine, machineId, cgo)
+    for i, input in ipairs(inputs) do
+        local found = false
+        for uid, item in pairs(inventory) do
+            local compare
+            if input.ItemType == "Sprinkler" or input.ItemType == "Holdable" or input.ItemType == "Seed" then
+                compare = item.ItemData.ItemName
+            elseif input.ItemType == "PetEgg" then
+                compare = item.ItemData.EggName
+            elseif input.ItemType == "SprayBottle" then
+                compare = item.ItemData.SprayType
             end
+            if compare == input.ItemName and input.ItemType == item.ItemType then
+                if item.ItemData.IsFavorite then
+                    print("Unfavorite:", input.ItemName)
+                else
+                    cgo:FireServer("InputItem", machine, machineId, i, { ItemType = input.ItemType, ItemData = { UUID = uid } })
+                    print("Added item:", input.ItemName)
+                    found = true
+                end
+                break
+            end
+        end
+        if not found then
+            print("Missing item:", input.ItemName)
+            return false -- Return false if any item is missing
+        end
+    end
+    return true -- All items added successfully
+end
 
-            if outputName then
-                table.insert(targetOptions, outputName)
-                categorizedRecipes[outputName] = {
-                    requirements = recipeData.Inputs or {},
-                    workbenchType = workbenchType,
-                    CurrencyType = recipeData.Cost and recipeData.Cost.CurrencyType,
-                    Amount = recipeData.Cost and recipeData.Cost.Amount,
-                    rarity = outputType,
-                    recipeName = recipeName
+functions.claimCompletedJobs = function(machineData, machine, machineId, cgo)
+    local claimed = false
+    if machineData and machineData[machineId] then
+        for index, job in ipairs(machineData[machineId].CraftingItems or {}) do
+            if job.IsDone then
+                cgo:FireServer("Claim", machine, machineId, index)
+                print("Claimed completed job at index:", index)
+                task.wait(0.5)
+                claimed = true
+            end
+        end
+    end
+    return claimed
+end
+
+functions.waitForMachineIdle = function(machine, machineId)
+    print("Waiting for machine to become idle...")
+    while true do
+        task.wait(2) -- Increased wait time for better performance
+        local _, _, _, _, data = functions.getPlayerData()
+        local machineData = data and data[machineId] and data[machineId].MachineData
+        
+        -- Get cgo service
+        local cgo = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
+        
+        -- Claim any completed jobs first
+        local claimed = functions.claimCompletedJobs(machineData, machine, machineId, cgo)
+        
+        -- If we claimed something, wait a bit more for the machine to update
+        if claimed then
+            task.wait(1)
+            _, _, _, _, data = functions.getPlayerData()
+            machineData = data and data[machineId] and data[machineId].MachineData
+        end
+        
+        -- Check if machine is now available
+        if functions.isMachineAvailable(machineData, machineId) then
+            print("Machine is now idle and ready")
+            break
+        else
+            print("Machine still busy, continuing to wait...")
+        end
+    end
+end
+
+functions.loadCraftingRecipes = function()
+    local seedRecipes = { "Off" }
+    local gearRecipes = { "Off" }
+    local outputTable = {}
+    
+    local success, error = pcall(function()
+        local CraftingData = require(game:GetService("ReplicatedStorage").Data.CraftingData)
+        local Recipes = CraftingData.CraftingRecipeRegistry.ItemRecipes
+        
+        local processedCount = 0
+        local totalRecipes = 0
+        
+        -- Count total recipes first
+        for _ in pairs(Recipes) do
+            totalRecipes = totalRecipes + 1
+        end
+        
+        -- Process recipes with yield points
+        for recipeName, recipeData in pairs(Recipes) do
+            local recipeEntry = {}
+            recipeEntry.MachineTypes = {}
+            
+            -- MachineTypes
+            if recipeData.MachineTypes and #recipeData.MachineTypes > 0 then
+                for _, machineType in ipairs(recipeData.MachineTypes) do
+                    table.insert(recipeEntry.MachineTypes, machineType)
+                end
+            end
+            
+            -- Inputs
+            recipeEntry.Inputs = {}
+            if recipeData.Inputs then
+                for _, input in ipairs(recipeData.Inputs) do
+                    local itemName = input.ItemData and input.ItemData.ItemName or "(unknown)"
+                    local itemType = input.ItemType or "(unknown)"
+                    table.insert(recipeEntry.Inputs, {
+                        ItemName = itemName,
+                        ItemType = itemType
+                    })
+                end
+            end
+            
+            -- Cost
+            if recipeData.Cost then
+                recipeEntry.Cost = {
+                    CurrencyType = recipeData.Cost.CurrencyType or "(unknown)",
+                    Amount = recipeData.Cost.Amount or 0
+                }
+            else
+                recipeEntry.Cost = {
+                    CurrencyType = "None",
+                    Amount = 0
                 }
             end
+            
+            outputTable[recipeName] = recipeEntry
+            
+            -- Categorize recipe
+            local hasSeedEventWorkbench = false
+            for _, machineType in ipairs(recipeEntry.MachineTypes) do
+                if machineType == "SeedEventWorkbench" then
+                    hasSeedEventWorkbench = true
+                    break
+                end
+            end
+            
+            if hasSeedEventWorkbench then
+                table.insert(seedRecipes, recipeName)
+            else
+                table.insert(gearRecipes, recipeName)
+            end
+            
+            processedCount = processedCount + 1
+            
+            -- Yield every 10 recipes to prevent lag
+            if processedCount % 10 == 0 then
+                task.wait()
+                print(string.format("Processed %d/%d recipes...", processedCount, totalRecipes))
+            end
         end
-    end
-
-    return seedOptions, gearOptions, categorizedRecipes
-end
-
--- Check if session is active
-functions.isSessionActive = function(workbenchType, sessionId, activeSessionIdSeed, activeSessionIdGear)
-    if workbenchType == "SeedEventWorkbench" then
-        return sessionId == activeSessionIdSeed
-    elseif workbenchType == "GearEventWorkbench" then
-        return sessionId == activeSessionIdGear
-    end
-    return false
-end
-
--- Find item in bag
-functions.findItemInBag = function(itemName)
-    if not functions.localPlayerBag then
-        return nil
-    end
-    
-    for _, item in ipairs(functions.localPlayerBag:GetChildren()) do
-        if string.lower(item.Name):find(string.lower(itemName), 1, true) then
-            return item
-        end
-    end
-    return nil
-end
-
--- Wait for currency
-functions.waitForCurrency = function(config, itemName, activeCrafting)
-    while activeCrafting[itemName] do
-        local _, sheckles, honey = functions.getPlayerData()
         
-        if config.CurrencyType == "Sheckles" and sheckles < config.Amount then
-            functions.sendNotification("Auto Craft", "Waiting for Sheckles... (" .. (sheckles or 0) .. "/" .. config.Amount .. ")")
-            task.wait(5)
-        elseif config.CurrencyType == "Honey" and honey < config.Amount then
-            functions.sendNotification("Auto Craft", "Waiting for Honey... (" .. (honey or 0) .. "/" .. config.Amount .. ")")
-            task.wait(5)
-        else
-            break
-        end
-    end
-end
-
--- Cancel crafting
-functions.cancelCrafting = function(workbenchType, activeWorkbenches, activeCrafting)
-    local activeItem = activeWorkbenches[workbenchType]
-    if activeItem then
-        local craftTable = functions.getCraftTable(workbenchType)
-        if craftTable then
-            pcall(function()
-                functions.CraftingService:Cancel(craftTable, workbenchType)
-            end)
-        end
-        activeCrafting[activeItem] = nil
-        activeWorkbenches[workbenchType] = nil
-        functions.sendNotification("Auto Craft", "Cancelled " .. string.lower(workbenchType:gsub("EventWorkbench", "")) .. " crafting")
-    end
-end
-
--- Set recipe with error handling
-functions.setRecipe = function(craftTable, workbenchType, itemName)
-    local success, err = pcall(function()
-        functions.CraftingService:SetRecipe(craftTable, workbenchType, itemName)
+        print(string.format("Loaded %d seed recipes and %d gear recipes", #seedRecipes - 1, #gearRecipes - 1))
     end)
     
     if not success then
-        functions.sendNotification("Auto Craft", "Failed to set recipe: " .. tostring(err))
-        return false
+        print("Error loading recipes:", error)
+        return nil, nil, nil
     end
-    return true
+    
+    return seedRecipes, gearRecipes, outputTable
 end
 
--- Input item with error handling
-functions.inputItem = function(craftTable, workbenchType, index, itemData)
-    local success, err = pcall(function()
-        functions.CraftingService:InputItem(craftTable, workbenchType, index, itemData)
-    end)
-    
-    if not success then
-        functions.sendNotification("Auto Craft", "Failed to input item: " .. tostring(err))
-        return false
-    end
-    return true
-end
-
--- Start craft with error handling
-functions.startCraft = function(craftTable, workbenchType)
-    local success, err = pcall(function()
-        functions.CraftingService:Craft(craftTable, workbenchType)
-    end)
-    
-    if not success then
-        functions.sendNotification("Auto Craft", "Failed to start craft: " .. tostring(err))
-        return false
-    end
-    return true
-end
-
--- Claim craft with error handling
-functions.claimCraft = function(craftTable, workbenchType, slotIndex)
-    local success, err = pcall(function()
-        functions.CraftingService:Claim(craftTable, workbenchType, slotIndex or 1)
-    end)
-    
-    if success then
-        functions.sendNotification("Auto Craft", "Claimed craft successfully")
-        return true
-    else
-        functions.sendNotification("Auto Craft", "Failed to claim: " .. tostring(err))
-        return false
-    end
-end
-
--- Wait for item in bag
-functions.waitForItemInBag = function(itemName, maxAttempts, activeCrafting)
-    maxAttempts = maxAttempts or 12
-    local attempts = 0
-    local matched
-    
-    while activeCrafting[itemName] and not matched and attempts < maxAttempts do
-        matched = functions.findItemInBag(itemName)
+-- Create auto-crafting coroutine
+functions.createAutoCraftingCoroutine = function(machine, machineId, selectedRecipe, outputTable, isActive)
+    return coroutine.create(function()
+        local cgo = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
         
-        if not matched then
-            attempts += 1
-            functions.sendNotification("Auto Craft", "Missing item: " .. itemName .. " (Attempt " .. attempts .. "/" .. maxAttempts .. ")")
-            task.wait(5)
+        while isActive() do
+            task.wait(1)
+            local _, Sheckles, Honey, _, data, inventory = functions.getPlayerData()
+            local machineData = data and data[machineId] and data[machineId].MachineData
+
+            -- First, claim any completed jobs
+            functions.claimCompletedJobs(machineData, machine, machineId, cgo)
+            
+            -- Wait a moment for the machine data to update after claiming
+            task.wait(0.5)
+            _, _, _, _, data, inventory = functions.getPlayerData()
+            machineData = data and data[machineId] and data[machineId].MachineData
+
+            -- Check if machine is available for new crafting
+            if functions.isMachineAvailable(machineData, machineId) then
+                local recipe = outputTable[selectedRecipe()]
+                if not recipe then 
+                    print("Recipe not found:", selectedRecipe()) 
+                    break 
+                end
+
+                print("Starting new craft for:", selectedRecipe())
+                cgo:FireServer("SetRecipe", machine, machineId, selectedRecipe())
+                task.wait(0.5) -- Small delay after setting recipe
+                
+                -- Add items and check if successful
+                local itemsAdded = functions.addRecipeItems(recipe.Inputs, inventory, machine, machineId, cgo)
+                if not itemsAdded then
+                    print("Failed to add all required items, retrying...")
+                    task.wait(3)
+                    continue
+                end
+
+                -- Check currency before starting
+                local enoughCurrency, currencyType = functions.hasEnoughCurrency(recipe, Sheckles, Honey)
+                if not enoughCurrency then
+                    print("Waiting for enough", currencyType)
+                    task.wait(5) -- Wait longer before checking again
+                    continue
+                end
+                
+                task.wait(0.5) -- Small delay after adding items
+                
+                cgo:FireServer("Craft", machine, machineId)
+                print("Crafting started:", selectedRecipe())
+                
+                -- Wait for this crafting job to complete before starting next
+                functions.waitForMachineIdle(machine, machineId)
+            else
+                print("Machine busy, waiting for completion...")
+                functions.waitForMachineIdle(machine, machineId)
+            end
         end
-    end
-    
-    if attempts >= maxAttempts then
-        functions.sendNotification("Auto Craft", "Timeout waiting for: " .. itemName)
-        return nil
-    end
-    
-    return matched
+        print("Auto-crafting stopped:", selectedRecipe())
+    end)
 end
 
--- Initialize services (call this from your main script)
-functions.initialize = function(craftingService, craftingData, craftingObjectRegistry, dataService, localPlayerBag)
-    functions.CraftingService = craftingService
-    functions.craftingData = craftingData
-    functions.craftingObjectRegistry = craftingObjectRegistry
-    functions.dataService = dataService
-    functions.localPlayerBag = localPlayerBag
-end
+
 
 task.defer(function()local function t(e)if not e then return end;local h=functions.getHumanoidRootPart()if not h then return end;if not pcall(function()firetouchinterest(h,e,0)task.wait()firetouchinterest(h,e,1)end)then warn("Touch function failed - firetouchinterest may not be available")end end;local p=functions.players.LocalPlayer;workspace.ChildAdded:Connect(function(c)if not c:IsA("Model")then return end;task.wait(1)if c:GetAttribute("SEED_GIVEN")and c:GetAttribute("OWNER")==p.Name then task.wait(2)local part=c:FindFirstChildOfClass("Part")if not part then return end;t(part)end end)end)
 return functions
