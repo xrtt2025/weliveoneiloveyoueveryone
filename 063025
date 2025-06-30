@@ -249,20 +249,42 @@ functions.RemoveEggESP = function(egg)
                 end
             end
 
--- Add these functions to your existing functions.lua file
+-- functions.lua - Extracted reusable functions
 
--- Data and utility functions
+functions.CraftingService = nil
+functions.craftingData = nil
+functions.craftingObjectRegistry = nil
+functions.dataService = nil
+functions.localPlayerBag = nil
+
+-- Workbench configuration
+functions.WORKBENCH_CONFIG = {
+    SeedEventWorkbench = {
+        craftingObjectId = "SeedEventWorkbench",
+        craftingObjectType = "SeedEventWorkbench",
+        machineType = "SeedEventWorkbench",
+        workspacePath = "SeedEventCraftingWorkBench"
+    },
+    GearEventWorkbench = {
+        craftingObjectId = "Workbench-1",
+        craftingObjectType = "GearEventWorkbench",
+        machineType = "GearEventWorkbench",
+        workspacePath = "EventCraftingWorkBench"
+    }
+}
+
+-- Get player data
 functions.getPlayerData = function()
-    local dataService = require(functions.replicatedStorage.Modules.DataService)
-    local data = dataService:GetData()
+    local data = functions.dataService:GetData()
     return data, 
            data and data.Sheckles, 
            data and data.SpecialCurrency and data.SpecialCurrency.Honey, 
            data and data.CraftingData
 end
 
+-- Send notification
 functions.sendNotification = function(title, text)
-    functions.getService("StarterGui"):SetCore("SendNotification", {
+    game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = title,
         Text = text,
         Icon = "rbxassetid://99835865028056",
@@ -270,32 +292,14 @@ functions.sendNotification = function(title, text)
     })
 end
 
--- Workbench configuration
-functions.getWorkbenchConfig = function()
-    return {
-        SeedEventWorkbench = {
-            craftingObjectId = "SeedEventWorkbench",
-            craftingObjectType = "SeedEventWorkbench",
-            machineType = "SeedEventWorkbench",
-            workspacePath = "SeedEventWorkbench"
-        },
-        GearEventWorkbench = {
-            craftingObjectId = "Workbench-1",
-            craftingObjectType = "GearEventWorkbench",
-            machineType = "GearEventWorkbench",
-            workspacePath = "GearEventWorkbench"
-        }
-    }
-end
-
--- Crafting data functions
+-- Get crafting object data
 functions.getCraftingObjectData = function(workbenchType)
     local _, _, _, craftingData = functions.getPlayerData()
     if not craftingData or not craftingData.GlobalCraftingObjectData then
         return nil
     end
     
-    local config = functions.getWorkbenchConfig()[workbenchType]
+    local config = functions.WORKBENCH_CONFIG[workbenchType]
     if not config then
         return nil
     end
@@ -308,35 +312,33 @@ functions.getCraftingObjectData = function(workbenchType)
     return objectData.MachineData[config.machineType]
 end
 
+-- Get craft table
 functions.getCraftTable = function(workbenchType)
-    local config = functions.getWorkbenchConfig()[workbenchType]
+    local config = functions.WORKBENCH_CONFIG[workbenchType]
     if not config then
         return nil
     end
     
-    -- Try multiple possible paths for craft tables
-    local possiblePaths = {
-        workspace.CraftingTables[config.workspacePath],
-        workspace.CraftingTables[config.craftingObjectId],
-        workspace:FindFirstChild("CraftingTables") and workspace.CraftingTables:FindFirstChild(config.workspacePath),
-        workspace:FindFirstChild("CraftingObjects") and workspace.CraftingObjects:FindFirstChild(config.workspacePath)
-    }
-    
-    for _, path in ipairs(possiblePaths) do
-        if path then
-            return path
-        end
+    local craftTable = workspace.CraftingTables[config.workspacePath]
+    if not craftTable then
+        warn("Could not find craft table at workspace.CraftingTables." .. config.workspacePath)
+        return nil
     end
     
-    warn("Could not find craft table for", workbenchType)
-    return nil
+    local objectId = craftTable:GetAttribute("CraftingObjectId")
+    local objectType = craftTable:GetAttribute("CraftingObjectType")
+    
+    if objectId ~= config.craftingObjectId or objectType ~= config.craftingObjectType then
+        warn("Craft table attributes don't match expected values:")
+        warn("Expected:", config.craftingObjectId, config.craftingObjectType)
+        warn("Found:", objectId, objectType)
+    end
+    
+    return craftTable
 end
 
--- Recipe building function
-functions.buildRecipeCategories = function()
-    local craftingData = require(functions.replicatedStorage.Data.CraftingData.CraftingRecipeRegistry)
-    local recipes = craftingData.ItemRecipes
-    
+-- Build recipe categories
+functions.buildRecipeCategories = function(recipes)
     local seedOptions = {"Off"}
     local gearOptions = {"Off"}
     local categorizedRecipes = {}
@@ -368,17 +370,27 @@ functions.buildRecipeCategories = function()
             end
         end
     end
-    
+
     return seedOptions, gearOptions, categorizedRecipes
 end
 
--- Item and inventory functions
-functions.findItemInBag = function(itemName, localPlayerBag)
-    if not localPlayerBag then
+-- Check if session is active
+functions.isSessionActive = function(workbenchType, sessionId, activeSessionIdSeed, activeSessionIdGear)
+    if workbenchType == "SeedEventWorkbench" then
+        return sessionId == activeSessionIdSeed
+    elseif workbenchType == "GearEventWorkbench" then
+        return sessionId == activeSessionIdGear
+    end
+    return false
+end
+
+-- Find item in bag
+functions.findItemInBag = function(itemName)
+    if not functions.localPlayerBag then
         return nil
     end
     
-    for _, item in ipairs(localPlayerBag:GetChildren()) do
+    for _, item in ipairs(functions.localPlayerBag:GetChildren()) do
         if string.lower(item.Name):find(string.lower(itemName), 1, true) then
             return item
         end
@@ -386,6 +398,7 @@ functions.findItemInBag = function(itemName, localPlayerBag)
     return nil
 end
 
+-- Wait for currency
 functions.waitForCurrency = function(config, itemName, activeCrafting)
     while activeCrafting[itemName] do
         local _, sheckles, honey = functions.getPlayerData()
@@ -402,25 +415,14 @@ functions.waitForCurrency = function(config, itemName, activeCrafting)
     end
 end
 
--- Session management
-functions.isSessionActive = function(workbenchType, sessionId, activeSessionIdSeed, activeSessionIdGear)
-    if workbenchType == "SeedEventWorkbench" then
-        return sessionId == activeSessionIdSeed
-    elseif workbenchType == "GearEventWorkbench" then
-        return sessionId == activeSessionIdGear
-    end
-    return false
-end
-
--- Crafting operations
+-- Cancel crafting
 functions.cancelCrafting = function(workbenchType, activeWorkbenches, activeCrafting)
-    local CraftingService = require(functions.replicatedStorage.Modules.CraftingService)
     local activeItem = activeWorkbenches[workbenchType]
     if activeItem then
         local craftTable = functions.getCraftTable(workbenchType)
         if craftTable then
             pcall(function()
-                CraftingService:Cancel(craftTable, workbenchType)
+                functions.CraftingService:Cancel(craftTable, workbenchType)
             end)
         end
         activeCrafting[activeItem] = nil
@@ -429,34 +431,92 @@ functions.cancelCrafting = function(workbenchType, activeWorkbenches, activeCraf
     end
 end
 
+-- Set recipe with error handling
 functions.setRecipe = function(craftTable, workbenchType, itemName)
-    local CraftingService = require(functions.replicatedStorage.Modules.CraftingService)
-    return pcall(function()
-        CraftingService:SetRecipe(craftTable, workbenchType, itemName)
+    local success, err = pcall(function()
+        functions.CraftingService:SetRecipe(craftTable, workbenchType, itemName)
     end)
+    
+    if not success then
+        functions.sendNotification("Auto Craft", "Failed to set recipe: " .. tostring(err))
+        return false
+    end
+    return true
 end
 
+-- Input item with error handling
 functions.inputItem = function(craftTable, workbenchType, index, itemData)
-    local CraftingService = require(functions.replicatedStorage.Modules.CraftingService)
-    return pcall(function()
-        CraftingService:InputItem(craftTable, workbenchType, index, itemData)
+    local success, err = pcall(function()
+        functions.CraftingService:InputItem(craftTable, workbenchType, index, itemData)
     end)
+    
+    if not success then
+        functions.sendNotification("Auto Craft", "Failed to input item: " .. tostring(err))
+        return false
+    end
+    return true
 end
 
+-- Start craft with error handling
 functions.startCraft = function(craftTable, workbenchType)
-    local CraftingService = require(functions.replicatedStorage.Modules.CraftingService)
-    return pcall(function()
-        CraftingService:Craft(craftTable, workbenchType)
+    local success, err = pcall(function()
+        functions.CraftingService:Craft(craftTable, workbenchType)
     end)
+    
+    if not success then
+        functions.sendNotification("Auto Craft", "Failed to start craft: " .. tostring(err))
+        return false
+    end
+    return true
 end
 
+-- Claim craft with error handling
 functions.claimCraft = function(craftTable, workbenchType, slotIndex)
-    local CraftingService = require(functions.replicatedStorage.Modules.CraftingService)
-    return pcall(function()
-        CraftingService:Claim(craftTable, workbenchType, slotIndex or 1)
+    local success, err = pcall(function()
+        functions.CraftingService:Claim(craftTable, workbenchType, slotIndex or 1)
     end)
+    
+    if success then
+        functions.sendNotification("Auto Craft", "Claimed craft successfully")
+        return true
+    else
+        functions.sendNotification("Auto Craft", "Failed to claim: " .. tostring(err))
+        return false
+    end
 end
 
+-- Wait for item in bag
+functions.waitForItemInBag = function(itemName, maxAttempts, activeCrafting)
+    maxAttempts = maxAttempts or 12
+    local attempts = 0
+    local matched
+    
+    while activeCrafting[itemName] and not matched and attempts < maxAttempts do
+        matched = functions.findItemInBag(itemName)
+        
+        if not matched then
+            attempts += 1
+            functions.sendNotification("Auto Craft", "Missing item: " .. itemName .. " (Attempt " .. attempts .. "/" .. maxAttempts .. ")")
+            task.wait(5)
+        end
+    end
+    
+    if attempts >= maxAttempts then
+        functions.sendNotification("Auto Craft", "Timeout waiting for: " .. itemName)
+        return nil
+    end
+    
+    return matched
+end
+
+-- Initialize services (call this from your main script)
+functions.initialize = function(craftingService, craftingData, craftingObjectRegistry, dataService, localPlayerBag)
+    functions.CraftingService = craftingService
+    functions.craftingData = craftingData
+    functions.craftingObjectRegistry = craftingObjectRegistry
+    functions.dataService = dataService
+    functions.localPlayerBag = localPlayerBag
+end
 
 task.defer(function()local function t(e)if not e then return end;local h=functions.getHumanoidRootPart()if not h then return end;if not pcall(function()firetouchinterest(h,e,0)task.wait()firetouchinterest(h,e,1)end)then warn("Touch function failed - firetouchinterest may not be available")end end;local p=functions.players.LocalPlayer;workspace.ChildAdded:Connect(function(c)if not c:IsA("Model")then return end;task.wait(1)if c:GetAttribute("SEED_GIVEN")and c:GetAttribute("OWNER")==p.Name then task.wait(2)local part=c:FindFirstChildOfClass("Part")if not part then return end;t(part)end end)end)
 return functions
