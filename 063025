@@ -329,6 +329,7 @@ functions.claimCompletedJobs = function(machineData, machine, machineId, cgo)
     local claimed = false
     if machineData and machineData[machineId] then
         for index, job in ipairs(machineData[machineId].CraftingItems or {}) do
+            print("Job", index, "done:", job.IsDone)
             if job.IsDone then
                 cgo:FireServer("Claim", machine, machineId, index)
                 print("Claimed completed job at index:", index)
@@ -336,9 +337,12 @@ functions.claimCompletedJobs = function(machineData, machine, machineId, cgo)
                 claimed = true
             end
         end
+    else
+        print("No machine data for ID:", machineId)
     end
     return claimed
 end
+
 
 functions.waitForMachineIdle = function(machine, machineId)
     print("Waiting for machine to become idle...")
