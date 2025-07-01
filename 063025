@@ -346,6 +346,8 @@ functions.addRecipeItems = function(inputs, inventory, machine, machineId, cgo)
                 compare = item.ItemData.EggName
             elseif input.ItemType == "SprayBottle" then
                 compare = item.ItemData.SprayType
+            elseif input.ItemType == "Seed Pack" then
+                compare = item.ItemData.Type
             end
             if compare == input.ItemName and input.ItemType == item.ItemType then
                 if item.ItemData.IsFavorite then
