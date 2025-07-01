@@ -349,7 +349,7 @@ functions.addRecipeItems = function(inputs, inventory, machine, machineId, cgo)
             elseif input.ItemType == "Seed Pack" then
                 compare = item.ItemData.Type
             elseif input.ItemType == "Harvest Tool" then
-                compare = item.itemType
+                compare = item.ItemType
             end
             if compare == input.ItemName and input.ItemType == item.ItemType then
                 if item.ItemData.IsFavorite then
