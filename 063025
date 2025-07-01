@@ -28,7 +28,8 @@ functions.seedList = {"Aloe Vera Seed", "Apple Seed", "Avocado Seed", "Bamboo Se
 
 table.sort( functions.seedList )
 
-functions.sortedMutations = {"Alienlike", "Aurora", "Bloodlit", "Burnt", "Celestial", "Chilled", "Choc", "Cloudtouched", "Cooked", "Dawnbound", "Disco", "Drenched", "Fried", "Frozen", "Galactic", "Heavenly", "HoneyGlazed", "Meteoric", "Molten", "Moonlit", "Paradisal", "Plasma", "Pollinated", "Shocked", "Sundried", "Twisted", "Verdant", "Voidtouched", "Wet", "Wiltproof", "Windstruck", "Zombified"}
+-- Gold, Rainbow
+functions.sortedMutations = {"Gold", "Rainbow", "Alienlike", "Aurora", "Bloodlit", "Burnt", "Celestial", "Chilled", "Choc", "Cloudtouched", "Cooked", "Dawnbound", "Disco", "Drenched", "Fried", "Frozen", "Galactic", "Heavenly", "HoneyGlazed", "Meteoric", "Molten", "Moonlit", "Paradisal", "Plasma", "Pollinated", "Shocked", "Sundried", "Twisted", "Verdant", "Voidtouched", "Wet", "Wiltproof", "Windstruck", "Zombified" }
 
 table.sort( functions.sortedMutations )
 
