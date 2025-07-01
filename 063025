@@ -71,7 +71,7 @@ functions.mutationColors = {
 }
 
 
-functions.waitFor=function(n,p)return p:WaitForChild(n,60)end
+functions.waitFor=function(n,p)return p:FindFirstChild(n,5)end
 functions.getModule=function(p,n)if not functions.loadedModules[n]then local m=p:FindFirstChild(n)if not m or not m:IsA("ModuleScript")then warn("❌ Module not found or invalid -> Trash exec",n)return nil end;local s,r=pcall(require,m)if s then functions.loadedModules[n]=r else warn("❌ Failed to load module -> Trash exec",n,r)return nil end end;return functions.loadedModules[n]end
 functions.GetTool = function(c)return c and c:FindFirstChildOfClass("Tool")end
 functions.getHumanoidRootPart=function()local p=functions.players.LocalPlayer if p and p.Character then return p.Character:FindFirstChild("HumanoidRootPart")end return nil end
@@ -348,6 +348,8 @@ functions.addRecipeItems = function(inputs, inventory, machine, machineId, cgo)
                 compare = item.ItemData.SprayType
             elseif input.ItemType == "Seed Pack" then
                 compare = item.ItemData.Type
+            elseif input.ItemType == "Reclaimer" then
+                compare = item.itemType
             end
             if compare == input.ItemName and input.ItemType == item.ItemType then
                 if item.ItemData.IsFavorite then
