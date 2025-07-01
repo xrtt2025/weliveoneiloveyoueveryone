@@ -76,7 +76,47 @@ functions.GetTool = function(c)return c and c:FindFirstChildOfClass("Tool")end
 functions.getHumanoidRootPart=function()local p=functions.players.LocalPlayer if p and p.Character then return p.Character:FindFirstChild("HumanoidRootPart")end return nil end
 functions.refreshPlayerList = function(d)local t={}for _,p in ipairs(game.Players:GetPlayers())do if p~=functions.players.LocalPlayer then table.insert(t,p.Name)end end table.sort(t)d:Refresh(t)end
 functions.parseTargetFruits = function(d)local u,p={},{};for _,f in ipairs(d.Value or {})do local c=f:match("^%s*(.-)%s*$"):lower()if c~=""then u[c]=true end end;for n in pairs(u)do table.insert(p,n)end;return p end
-functions.hasAnyMutation = function(obj, m)return obj and obj.GetAttributes and (function()for a in pairs(obj:GetAttributes())do local l=string.lower(a)if type(m)=="table"then for k,v in pairs(m)do if v and l==string.lower(k)then return true end end;for _,v in ipairs(m)do if l==string.lower(v)then return true end end end end;return false end)()or false end
+
+functions.hasAnyMutation = function(obj, m)
+    return obj and obj.GetAttributes and (function()
+        -- Check attributes
+        local attributes = obj:GetAttributes()
+        for a in pairs(attributes) do
+            local l = string.lower(a)
+            if type(m) == "table" then
+                for k, v in pairs(m) do
+                    if v and l == string.lower(k) then
+                        return true
+                    end
+                end
+                for _, v in ipairs(m) do
+                    if l == string.lower(v) then
+                        return true
+                    end
+                end
+            end
+        end
+
+        -- Check Variant StringValue
+        local variant = obj:FindFirstChild("Variant")
+        if variant and variant:IsA("StringValue") then
+            local variantLower = string.lower(variant.Value)
+            for k, v in pairs(m) do
+                if v and variantLower == string.lower(k) then
+                    return true
+                end
+            end
+            for _, v in ipairs(m) do
+                if variantLower == string.lower(v) then
+                    return true
+                end
+            end
+        end
+
+        return false
+    end)() or false
+end
+
 functions.togglePrompts = function(enabled) for _, prompt in ipairs(functions.Farms:GetDescendants()) do if prompt:IsA("ProximityPrompt") and prompt.Enabled ~= enabled then prompt.Enabled = enabled end end end
 functions.hidePlantVisualEffects=function(hide)if not functions.Farms then return end;local t=hide and 1 or 0.5;for _,d in ipairs(functions.Farms:GetDescendants())do if d:IsA("ParticleEmitter")then d.Enabled=not hide elseif d.Name=="FrozenShell"and d:IsA("BasePart")then d.Transparency=t end end end
 functions.makeHttpRequest=function(requestData)
