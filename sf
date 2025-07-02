@@ -9,150 +9,285 @@ local flyScript = playerScripts:WaitForChild("FlyScript")
 flyScript.Enabled = true
 localPlayer:SetAttribute("Gamemode", "Creative")
 
-local s_RunService_0 = game:GetService("RunService")
-local s_UserInputService_0 = game:GetService("UserInputService")
-local s_ReplicatedStorage_0 = game:GetService("ReplicatedStorage")
-local s_Players_0 = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 
-local l_LocalPlayer_0 = s_Players_0.LocalPlayer
-local v_u_1 = l_LocalPlayer_0:WaitForChild("PlayerGui"):WaitForChild("PlantHover_UI")
-local v_u_2 = v_u_1:WaitForChild("Frame")
-local v_u_3 = v_u_2:WaitForChild("PlantName")
-local v_u_4 = v_u_2:WaitForChild("PlantInfo")
-local v_u_5 = v_u_2:WaitForChild("PlantValue")
-local v_u_6 = v_u_2:WaitForChild("PlantMuts")
+local LocalPlayer = Players.LocalPlayer
+local PlantHoverUI = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("PlantHover_UI")
+local Frame = PlantHoverUI:WaitForChild("Frame")
+local PlantName = Frame:WaitForChild("PlantName")
+local PlantInfo = Frame:WaitForChild("PlantInfo")
+local PlantValue = Frame:WaitForChild("PlantValue")
+local PlantMuts = Frame:WaitForChild("PlantMuts")
 
-local v7 = require(s_ReplicatedStorage_0.Modules.CreateTagHandler)
-local v_u_8 = require(s_ReplicatedStorage_0.Data.GrowableData)
-local v_u_9 = require(s_ReplicatedStorage_0.Modules.NumberUtil)
-local v10 = require(s_ReplicatedStorage_0.Modules.Trove)
-local v11 = require(s_ReplicatedStorage_0.Modules.Remotes)
-local v_u_12 = require(s_ReplicatedStorage_0.Data.SeedData)
-local v_u_13 = require(s_ReplicatedStorage_0.Item_Module)
-local v_u_14 = require(s_ReplicatedStorage_0.Modules.CalculatePlantValue)
-local v_u_15 = require(s_ReplicatedStorage_0.Comma_Module)
-local v_u_16 = require(s_ReplicatedStorage_0.Modules.MutationHandler):GetMutations()
-local v_u_17 = require(s_ReplicatedStorage_0.Modules.GetMouseToWorld)
+local FruitMutationUI = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("FruitMutation_UI"):WaitForChild("Frame")
+local FruitName = FruitMutationUI:WaitForChild("FruitName")
+local FruitMutation = FruitMutationUI:WaitForChild("FruitMutation")
+local FruitValue = FruitMutationUI:WaitForChild("FruitValue")
 
-local l_CurrentCamera_0 = workspace.CurrentCamera
+-- Modules
+local CreateTagHandler = require(ReplicatedStorage.Modules.CreateTagHandler)
+local GrowableData = require(ReplicatedStorage.Data.GrowableData)
+local NumberUtil = require(ReplicatedStorage.Modules.NumberUtil)
+local Trove = require(ReplicatedStorage.Modules.Trove)
+local Remotes = require(ReplicatedStorage.Modules.Remotes)
+local SeedData = require(ReplicatedStorage.Data.SeedData)
+local ItemModule = require(ReplicatedStorage.Item_Module)
+local CalculatePlantValue = require(ReplicatedStorage.Modules.CalculatePlantValue)
+local CommaModule = require(ReplicatedStorage.Comma_Module)
+local MutationHandler = require(ReplicatedStorage.Modules.MutationHandler):GetMutations()
+local GetMouseToWorld = require(ReplicatedStorage.Modules.GetMouseToWorld)
+local EventGearData = require(ReplicatedStorage.Data.EventGearData)
+
+local CurrentCamera = workspace.CurrentCamera
+local Highlight = LocalPlayer.PlayerScripts.PlantOutline:WaitForChild("Highlight")
+
+-- Disable original plant outline
+LocalPlayer.PlayerScripts.PlantOutline.Enabled = false
+
+-- Variables
 workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
-    workspace.CurrentCamera = l_CurrentCamera_0
+    workspace.CurrentCamera = CurrentCamera
 end)
 
-local v_u_18 = 0
-local v_u_19 = nil
-local v_u_20 = {}
-local v_u_21 = {}
-local v_u_22 = {}
-local v_u_23 = workspace:GetAttribute("CurrentWeatherEvent") or "Default"
-local v_u_24 = v_u_8:GetDataForWeather(v_u_23)
+local currentGrowthPercent = 0
+local currentPlant = nil
+local growablePlants = {}
+local plantAges = {}
+local plantTimers = {}
+local currentWeatherEvent = workspace:GetAttribute("CurrentWeatherEvent") or "Default"
+local weatherData = GrowableData:GetDataForWeather(currentWeatherEvent)
+local rainbowTweens = {}
+local currentFruit = nil
+local isShowingPlantUI = false
+local isShowingFruitUI = false
 
 workspace:GetAttributeChangedSignal("CurrentWeatherEvent"):Connect(function()
-    v_u_23 = workspace:GetAttribute("CurrentWeatherEvent") or "Default"
-    v_u_24 = v_u_8:GetDataForWeather(v_u_23)
+    currentWeatherEvent = workspace:GetAttribute("CurrentWeatherEvent") or "Default"
+    weatherData = GrowableData:GetDataForWeather(currentWeatherEvent)
 end)
 
-local v_u_25 = RaycastParams.new()
-v_u_25.FilterDescendantsInstances = v_u_20
-v_u_25.FilterType = Enum.RaycastFilterType.Include
+local raycastParams = RaycastParams.new()
+raycastParams.FilterDescendantsInstances = growablePlants
+raycastParams.FilterType = Enum.RaycastFilterType.Include
 
--- Enhanced function to check if object is a fruit
-local function f_IsFruit(p_object)
-    return p_object:FindFirstAncestor("Fruits") ~= nil
+-- Shared utility functions
+local function IsFruit(object)
+    return object:FindFirstAncestor("Fruits") ~= nil
 end
 
--- Enhanced function to get plant/fruit name
-local function f_GetDisplayName(p_object)
-    if f_IsFruit(p_object) then
-        local parent = p_object.Parent
+local function GetDisplayName(object)
+    if IsFruit(object) then
+        local parent = object.Parent
         if parent and parent.Name ~= "Fruits" then
             return parent.Name
         else
-            return p_object.Name
+            return object.Name
         end
     else
-        return p_object.Name
+        return object.Name
     end
 end
 
-v7({
+local function Color3ToHex(color)
+    return string.format("#%02X%02X%02X", color.R * 255, color.G * 255, color.B * 255)
+end
+
+local function StartRainbowTween(textObject, template, replacementText)
+    if rainbowTweens[textObject] then
+        rainbowTweens[textObject]:Disconnect()
+    end
+    local hue = 0
+    rainbowTweens[textObject] = RunService.RenderStepped:Connect(function(deltaTime)
+        hue = (hue + deltaTime * 0.2) % 1
+        local color = Color3.fromHSV(hue, 1, 1)
+        textObject.Text = template:gsub("🌈", string.format("<font color=\"%s\">%s</font>", Color3ToHex(color), replacementText))
+    end)
+end
+
+local function StopAllRainbowTweens()
+    for _, connection in pairs(rainbowTweens) do
+        connection:Disconnect()
+    end
+    table.clear(rainbowTweens)
+end
+
+local function FindPlantModel(part)
+    while part and part ~= workspace do
+        if part:IsA("Model") and part:HasTag("Growable") then
+            return part
+        end
+        part = part:FindFirstAncestorWhichIsA("Model")
+    end
+    return nil
+end
+
+local function SetupPlantName(nameLabel, plantName, originalName)
+    local seedInfo = SeedData[originalName]
+    local rarity = seedInfo and seedInfo.SeedRarity
+    local rarityData = rarity and ItemModule.Return_Rarity_Data(rarity)
+    
+    if rarity == "Prismatic" then
+        nameLabel.Text = "🌈"
+        StartRainbowTween(nameLabel, "🌈", plantName)
+    elseif rarityData then
+        local color = rarityData[2]
+        nameLabel.Text = string.format("<font color=\"%s\">%s</font>", Color3ToHex(color), plantName)
+    else
+        nameLabel.Text = plantName
+    end
+end
+
+local function GetVariantInfo(plant)
+    local variant = plant:FindFirstChild("Variant")
+    if variant and variant:IsA("StringValue") then
+        local value = variant.Value
+        if value ~= "" and value ~= "Normal" then
+            local color = nil
+            if value == "Rainbow" then
+                color = nil
+            elseif value == "Gold" then
+                color = "#FFD700"
+            else
+                color = "#FFFFFF"
+            end
+            return value, color
+        end
+    end
+    return nil, nil
+end
+
+local function GetMutationInfo(plant)
+    local mutations = {}
+    for mutationName, mutationData in pairs(MutationHandler) do
+        if plant:GetAttribute(mutationName) then
+            local color = "#FFFFFF"
+            if mutationData.Color then
+                color = Color3ToHex(mutationData.Color)
+            end
+            table.insert(mutations, {
+                Name = mutationName,
+                Color = color
+            })
+        end
+    end
+    return mutations
+end
+
+local function SetupMutationsText(mutLabel, variant, variantColor, mutations)
+    local displayParts = {}
+    
+    if variant then
+        if variant == "Rainbow" then
+            table.insert(displayParts, "🌈")
+        else
+            table.insert(displayParts, string.format("<font color=\"%s\">%s</font>", variantColor, variant))
+        end
+    end
+    
+    for _, mutation in ipairs(mutations) do
+        table.insert(displayParts, string.format("<font color=\"%s\">%s</font>", mutation.Color, mutation.Name))
+    end
+    
+    if #displayParts > 0 then
+        local combinedText = table.concat(displayParts, " <font color=\"#FFFFFF\">+</font> ")
+        mutLabel.Text = combinedText
+        mutLabel.Visible = true
+        
+        if variant == "Rainbow" then
+            StartRainbowTween(mutLabel, combinedText, "Rainbow")
+        end
+    else
+        mutLabel.Text = ""
+        mutLabel.Visible = false
+    end
+end
+
+local function GetPlantWeight(plant)
+    local weight = plant:FindFirstChild("Weight")
+    return string.format("%.2f", weight.Value)
+end
+
+
+-- Growable plant tracking
+CreateTagHandler({
     ["Tag"] = "Growable",
-    ["OnInstanceAdded"] = function(p27)
-        if p27:IsDescendantOf(workspace) then
-            table.insert(v_u_20, p27)
-            v_u_25:AddToFilter(p27)
+    ["OnInstanceAdded"] = function(plant)
+        if plant:IsDescendantOf(workspace) then
+            table.insert(growablePlants, plant)
+            raycastParams:AddToFilter(plant)
         end
     end,
-    ["OnInstanceRemoved"] = function(p28)
-        local v29 = table.find(v_u_20, p28)
-        if v29 then
-            table.remove(v_u_20, v29)
-            v_u_25.FilterDescendantsInstances = v_u_20
-            v_u_21[p28] = nil
-            v_u_22[p28] = nil
+    ["OnInstanceRemoved"] = function(plant)
+        local index = table.find(growablePlants, plant)
+        if index then
+            table.remove(growablePlants, index)
+            raycastParams.FilterDescendantsInstances = growablePlants
+            plantAges[plant] = nil
+            plantTimers[plant] = nil
         end
     end
 })
 
-local v_u_30 = false
-local v_u_31 = v10.new()
+-- Growth timer system
+local isTimerEnabled = false
+local timerTrove = Trove.new()
 
-local function f_UpdateTimeLeft(p32)
-    if p32 then
-        local v33 = v_u_8:GetDataForPlant(p32)
-        if v33 then
-            local v34 = p32:WaitForChild("Grow", 1)
-            local v35
-            if v34 then
-                v35 = v34:WaitForChild("Age", 1)
+local function UpdateTimeLeft(plant)
+    if plant then
+        local plantData = GrowableData:GetDataForPlant(plant)
+        if plantData then
+            local growComponent = plant:WaitForChild("Grow", 1)
+            local ageValue
+            if growComponent then
+                ageValue = growComponent:WaitForChild("Age", 1)
             end
-            if v35 then
-                local l_GrowTickTime_0 = v33.GrowTickTime
-                v_u_22[p32] = math.ceil(((p32:GetAttribute("MaxAge") or 1) - v35.Value) / v33.GrowRate) * (Random.new(p32.Item_Seed.Value):NextNumber() * (l_GrowTickTime_0.Max - l_GrowTickTime_0.Min) + l_GrowTickTime_0.Min)
-                v_u_21[p32] = nil
+            if ageValue then
+                local growTickTime = plantData.GrowTickTime
+                plantTimers[plant] = math.ceil(((plant:GetAttribute("MaxAge") or 1) - ageValue.Value) / plantData.GrowRate) * (Random.new(plant.Item_Seed.Value):NextNumber() * (growTickTime.Max - growTickTime.Min) + growTickTime.Min)
+                plantAges[plant] = nil
             end
         end
     end
 end
 
-v11.Plant.Update.listen(function(p36)
-    if v_u_30 then
-        pcall(f_UpdateTimeLeft, p36)
+Remotes.Plant.Update.listen(function(plant)
+    if isTimerEnabled then
+        pcall(UpdateTimeLeft, plant)
     end
 end)
 
-local v_u_47 = false
-
-local function f_UpdateABGrowTimer()
-    v_u_47 = l_LocalPlayer_0:GetAttribute("AB_GrowTimer")
-    if v_u_47 then
-        if not v_u_30 then
-            v_u_30 = true
-            local v_u_48 = 0
-            v_u_31:Add(s_RunService_0.PostSimulation:Connect(function(p49)
-                v_u_48 = v_u_48 + p49
-                if v_u_48 >= 0.2 then
-                    local v50 = v_u_48
-                    v_u_48 = 0
-                    for _, v51 in v_u_20 do
-                        local v52 = v_u_22[v51]
-                        if v52 then
-                            if v52 > 0 then
-                                local v53 = v_u_22
-                                v53[v51] = v53[v51] - v50 * ((v51:GetAttribute("GrowRateMulti") or 1) * v_u_24.GrowRateMulti)
+local function UpdateGrowTimer()
+    local timerAttribute = LocalPlayer:GetAttribute("AB_GrowTimer")
+    if timerAttribute then
+        if not isTimerEnabled then
+            isTimerEnabled = true
+            local deltaTime = 0
+            timerTrove:Add(RunService.PostSimulation:Connect(function(dt)
+                deltaTime = deltaTime + dt
+                if deltaTime >= 0.2 then
+                    local timeStep = deltaTime
+                    deltaTime = 0
+                    for _, plant in growablePlants do
+                        local timer = plantTimers[plant]
+                        if timer then
+                            if timer > 0 then
+                                plantTimers[plant] = plantTimers[plant] - timeStep * ((plant:GetAttribute("GrowRateMulti") or 1) * weatherData.GrowRateMulti)
                             end
                         else
-                            local v54 = v51:FindFirstChild("Grow")
-                            if v54 then
-                                local v55 = v54:FindFirstChild("Age")
-                                if v55 and v51:GetAttribute("MaxAge") then
-                                    local l_Value_1 = v55.Value
-                                    local v56 = v_u_21[v51]
-                                    if v56 ~= l_Value_1 or l_Value_1 == 0 then
-                                        if v56 and not v_u_22[v51] then
-                                            f_UpdateTimeLeft(v51)
+                            local growComponent = plant:FindFirstChild("Grow")
+                            if growComponent then
+                                local ageValue = growComponent:FindFirstChild("Age")
+                                if ageValue and plant:GetAttribute("MaxAge") then
+                                    local currentAge = ageValue.Value
+                                    local lastAge = plantAges[plant]
+                                    if lastAge ~= currentAge or currentAge == 0 then
+                                        if lastAge and not plantTimers[plant] then
+                                            UpdateTimeLeft(plant)
                                         else
-                                            v_u_21[v51] = l_Value_1
+                                            plantAges[plant] = currentAge
                                         end
                                     end
                                 end
@@ -162,462 +297,243 @@ local function f_UpdateABGrowTimer()
                 end
             end))
         end
-    elseif v_u_30 then
-        v_u_30 = false
-        for _, v57 in v_u_20 do
-            v_u_21[v57] = nil
-            v_u_22[v57] = nil
+    elseif isTimerEnabled then
+        isTimerEnabled = false
+        for _, plant in growablePlants do
+            plantAges[plant] = nil
+            plantTimers[plant] = nil
         end
-        v_u_31:Clean()
+        timerTrove:Clean()
     end
 end
 
-task.spawn(f_UpdateABGrowTimer)
-l_LocalPlayer_0:GetAttributeChangedSignal("AB_GrowTimer"):Connect(f_UpdateABGrowTimer)
+task.spawn(UpdateGrowTimer)
+LocalPlayer:GetAttributeChangedSignal("AB_GrowTimer"):Connect(UpdateGrowTimer)
 
-local v_u_58 = 0
-local v_u_59 = false
+-- Plant hover UI
+local updateTimer = 0
 
-local function f_FindPlantModel(p60)
-    while p60 and p60 ~= workspace do
-        if p60:IsA("Model") and p60:HasTag("Growable") then
-            return p60
-        end
-        p60 = p60:FindFirstAncestorWhichIsA("Model")
-    end
-    return nil
-end
-
-local v_u_61 = {}
-
-local function StartRainbowTween(p_u_62, p_u_63, p_u_64)
-    if v_u_61[p_u_62] then
-        v_u_61[p_u_62]:Disconnect()
-    end
-    local v_u_65 = 0
-    v_u_61[p_u_62] = s_RunService_0.RenderStepped:Connect(function(p66)
-        v_u_65 = (v_u_65 + p66 * 0.2) % 1
-        local v67 = Color3.fromHSV(v_u_65, 1, 1)
-        p_u_62.Text = p_u_63:gsub("\240\159\140\136", (string.format("<font color=\"#%s\">%s</font>", string.format("#%02X%02X%02X", v67.R * 255, v67.G * 255, v67.B * 255), p_u_64)))
-    end)
-end
-
-s_RunService_0.PostSimulation:Connect(function(p69)
-    local v70 = s_UserInputService_0:GetMouseLocation()
-    v_u_1.Frame.Position = UDim2.new(0.01, v70.X, 0, v70.Y)
-    v_u_58 = v_u_58 + p69
-    if v_u_58 < 0.1 then
+RunService.PostSimulation:Connect(function(deltaTime)
+    local mousePos = UserInputService:GetMouseLocation()
+    Frame.Position = UDim2.new(0.01, mousePos.X, 0, mousePos.Y)
+    
+    updateTimer = updateTimer + deltaTime
+    if updateTimer < 0.1 then
         return
     else
-        v_u_58 = 0
-        local v71 = v_u_17(v_u_25, 1000)
-        local v72 = nil
-        if v71 and v71.Instance then
-            local l_Instance_0 = v71.Instance
-            local v73 = f_FindPlantModel(l_Instance_0)
-            -- Modified condition: Accept both inspected plants AND fruits
-            if v73 and (v73:GetAttribute("Inspected") or f_IsFruit(l_Instance_0)) then
-                v72 = v73
+        updateTimer = 0
+        
+        local raycastResult = GetMouseToWorld(raycastParams, 1000)
+        local hoveredPlant = nil
+        
+        if raycastResult and raycastResult.Instance then
+            local instance = raycastResult.Instance
+            local plantModel = FindPlantModel(instance)
+            
+            if plantModel and (plantModel:GetAttribute("Inspected") or IsFruit(instance)) then
+                hoveredPlant = plantModel
             end
         end
-        if v72 and v72:GetAttribute("IsOutlined") then
-            v72 = nil
+        
+        if hoveredPlant and hoveredPlant:GetAttribute("IsOutlined") then
+            hoveredPlant = nil
         end
-        if v72 then
-            local v74 = v72:GetAttribute("Inspected")
-            local isFruit = f_IsFruit(v72)
-            if v72 == v_u_19 then
-                local v75 = v72:GetAttribute("MaxAge")
-                local v76 = v72:FindFirstChild("Grow")
-                if v76 then
-                    local v77 = v76:FindFirstChild("Age")
-                    if v75 and (v76 and v77) then
-                        v_u_18 = v_u_18 + (math.clamp(v77.Value / v75 * 100, 0, 100) - v_u_18) * math.clamp(p69 * 10, 0, 1)
-                        if v_u_18 ~= v_u_18 or (v_u_18 == (1 / 0) or v_u_18 == (-1 / 0)) then
-                            v_u_18 = 0
+        
+        if hoveredPlant then
+            local isInspected = hoveredPlant:GetAttribute("Inspected")
+            local isFruit = IsFruit(hoveredPlant)
+            
+            if hoveredPlant == currentPlant then
+                -- Update existing plant display
+                local maxAge = hoveredPlant:GetAttribute("MaxAge")
+                local growComponent = hoveredPlant:FindFirstChild("Grow")
+                
+                if growComponent then
+                    local ageValue = growComponent:FindFirstChild("Age")
+                    if maxAge and ageValue then
+                        currentGrowthPercent = currentGrowthPercent + (math.clamp(ageValue.Value / maxAge * 100, 0, 100) - currentGrowthPercent) * math.clamp(deltaTime * 10, 0, 1)
+                        
+                        if currentGrowthPercent ~= currentGrowthPercent or (currentGrowthPercent == math.huge or currentGrowthPercent == -math.huge) then
+                            currentGrowthPercent = 0
                         end
-                        if v_u_47 then
-                            local v78 = v_u_22[v_u_19] or 0
-                            local v79 = v_u_4
-                            local v80
-                            if v78 <= 0 then
-                                v80 = ""
-                            elseif v78 < 60 then
-                                v80 = string.format("%.1fs", v78)
+                        
+                        if LocalPlayer:GetAttribute("AB_GrowTimer") then
+                            local timeLeft = plantTimers[currentPlant] or 0
+                            local timeText = ""
+                            if timeLeft <= 0 then
+                                timeText = ""
+                            elseif timeLeft < 60 then
+                                timeText = string.format("%.1fs", timeLeft)
                             else
-                                v80 = v_u_9.compactFormat(v78)
+                                timeText = NumberUtil.compactFormat(timeLeft)
                             end
-                            v79.Text = v80
+                            PlantInfo.Text = timeText
                         else
                             if isFruit then
-                                v_u_4.Text = string.format("%.0f%% Ripened", v_u_18)
+                                PlantInfo.Text = string.format("%.0f%% Ripened", currentGrowthPercent)
                             else
-                                v_u_4.Text = string.format("%.0f%% Grown", v_u_18)
+                                PlantInfo.Text = string.format("%.0f%% Grown", currentGrowthPercent)
                             end
                         end
                     end
-                    v_u_4.Visible = v_u_4.Text ~= ""
+                    PlantInfo.Visible = PlantInfo.Text ~= ""
                 end
             else
-                v_u_19 = v72
-                local v81 = v_u_19:GetAttribute("MaxAge")
-                local v82 = v_u_19.Grow:FindFirstChild("Age")
-                if v81 and v82 then
-                    local v83 = math.clamp(v82.Value / v81 * 100, 0, 100)
-                    v_u_18 = v83
-                    for _, v84 in pairs(v_u_61) do
-                        v84:Disconnect()
-                    end
-                    table.clear(v_u_61)
-                    local l_Name_0 = f_GetDisplayName(v_u_19)
-                    local v85 = v_u_12[v_u_19.Name] -- Use original name for data lookup
-                    if v85 then
-                        v85 = v85.SeedRarity
-                    end
-                    local v86
-                    if v85 then
-                        v86 = v_u_13.Return_Rarity_Data(v85)
-                    end
-                    if v85 == "Prismatic" then
-                        v_u_3.Text = "\240\159\140\136"
-                        StartRainbowTween(v_u_3, "\240\159\140\136", l_Name_0)
-                    elseif v86 then
-                        local v92 = v86[2]
-                        v_u_3.Text = string.format("<font color=\"%s\">%s</font>", string.format("#%02X%02X%02X", v92.R * 255, v92.G * 255, v92.B * 255), l_Name_0)
-                    else
-                        v_u_3.Text = l_Name_0
-                    end
-                    if v83 >= 100 then
+                -- Setup new plant display
+                currentPlant = hoveredPlant
+                local maxAge = currentPlant:GetAttribute("MaxAge")
+                local ageValue = currentPlant.Grow:FindFirstChild("Age")
+                
+                if maxAge and ageValue then
+                    local growthPercent = math.clamp(ageValue.Value / maxAge * 100, 0, 100)
+                    currentGrowthPercent = growthPercent
+                    
+                    StopAllRainbowTweens()
+                    
+                    local displayName = GetDisplayName(currentPlant)
+                    local originalName = currentPlant.Name
+                    
+                    SetupPlantName(PlantName, displayName, originalName)
+                    
+                    -- Growth/Timer info
+                    if growthPercent >= 100 then
                         if isFruit then
-                            v_u_4.Text = "Ready to Harvest"
+                            PlantInfo.Text = "Ready to Harvest"
                         else
-                            v_u_4.Text = ""
+                            PlantInfo.Text = ""
                         end
-                    elseif v_u_47 then
-                        local v93 = v_u_22[v_u_19] or 0
-                        local v94 = v_u_4
-                        local v95
-                        if v93 <= 0 then
-                            v95 = ""
-                        elseif v93 < 60 then
-                            v95 = string.format("%.1fs", v93)
+                    elseif LocalPlayer:GetAttribute("AB_GrowTimer") then
+                        local timeLeft = plantTimers[currentPlant] or 0
+                        local timeText = ""
+                        if timeLeft <= 0 then
+                            timeText = ""
+                        elseif timeLeft < 60 then
+                            timeText = string.format("%.1fs", timeLeft)
                         else
-                            v95 = v_u_9.compactFormat(v93)
+                            timeText = NumberUtil.compactFormat(timeLeft)
                         end
-                        v94.Text = v95
+                        PlantInfo.Text = timeText
                     else
                         if isFruit then
-                            v_u_4.Text = string.format("%.0f%% Ripened", v_u_18)
+                            PlantInfo.Text = string.format("%.0f%% Ripened", currentGrowthPercent)
                         else
-                            v_u_4.Text = string.format("%.0f%% Grown", v_u_18)
+                            PlantInfo.Text = string.format("%.0f%% Grown", currentGrowthPercent)
                         end
                     end
-                    v_u_4.Visible = v_u_4.Text ~= ""
-                    if v74 or isFruit then
-                        v_u_5.Text = v_u_15.Comma((v_u_14(v72))) .. "¢"
+                    PlantInfo.Visible = PlantInfo.Text ~= ""
+                    
+                    -- Value and weight info
+                    if isInspected or isFruit then
+                        local plantValue = CalculatePlantValue(hoveredPlant)
+                        local plantWeight = GetPlantWeight(hoveredPlant)
+                        PlantValue.Text = CommaModule.Comma(plantValue) .. "¢ • " .. CommaModule.Comma(plantWeight) .. "kg"
                     else
-                        v_u_5.Text = ""
+                        PlantValue.Text = ""
                     end
-                    v_u_5.Visible = v_u_5.Text ~= ""
-                    local v96 = nil
-                    local v97 = nil
-                    local v98 = v72:FindFirstChild("Variant")
-                    local v99
-                    if v98 and v98:IsA("StringValue") then
-                        v99 = v98.Value
-                        if v99 == "" or v99 == "Normal" then
-                            v99 = v96
-                        elseif v99 == "Rainbow" then
-                            v97 = nil
-                        elseif v99 == "Gold" then
-                            v97 = "#FFD700"
-                        else
-                            v97 = "#FFFFFF"
-                        end
-                    else
-                        v99 = v96
-                    end
-                    local v100 = {}
-                    for v101, v102 in pairs(v_u_16) do
-                        if v72:GetAttribute(v101) then
-                            local v103 = {
-                                ["Name"] = v101
-                            }
-                            local v104
-                            if v102.Color then
-                                local l_Color_0 = v102.Color
-                                v104 = string.format("#%02X%02X%02X", l_Color_0.R * 255, l_Color_0.G * 255, l_Color_0.B * 255) or "#FFFFFF"
-                            else
-                                v104 = "#FFFFFF"
-                            end
-                            v103.Color = v104
-                            table.insert(v100, v103)
-                        end
-                    end
-                    local v105 = {}
-                    if v99 then
-                        if v99 == "Rainbow" then
-                            table.insert(v105, "\240\159\140\136")
-                        else
-                            table.insert(v105, string.format("<font color=\"%s\">%s</font>", v97, v99))
-                        end
-                    end
-                    for _, v106 in ipairs(v100) do
-                        table.insert(v105, string.format("<font color=\"%s\">%s</font>", v106.Color, v106.Name))
-                    end
-                    if #v105 > 0 then
-                        local v_u_107 = table.concat(v105, " <font color=\"#FFFFFF\">+</font> ")
-                        v_u_6.Text = v_u_107
-                        if v99 == "Rainbow" then
-                            StartRainbowTween(v_u_6, v_u_107, "Rainbow")
-                        end
-                    else
-                        v_u_6.Text = ""
-                    end
-                    v_u_6.Visible = v_u_6.Text ~= ""
-                    if not v_u_59 then
-                        v_u_59 = true
-                        v_u_2.Show_Val.Value = true
-                        v_u_2.Visible = true
+                    PlantValue.Visible = PlantValue.Text ~= ""
+                    
+                    -- Mutations and variants
+                    local variant, variantColor = GetVariantInfo(hoveredPlant)
+                    local mutations = GetMutationInfo(hoveredPlant)
+                    SetupMutationsText(PlantMuts, variant, variantColor, mutations)
+                    
+                    if not isShowingPlantUI then
+                        isShowingPlantUI = true
+                        Frame.Show_Val.Value = true
+                        Frame.Visible = true
                     end
                 end
             end
         else
-            if v_u_59 then
-                v_u_59 = false
-                v_u_2.Show_Val.Value = false
-                v_u_2.Visible = false
-                v_u_19 = nil
-                for _, v113 in pairs(v_u_61) do
-                    v113:Disconnect()
-                end
-                table.clear(v_u_61)
+            if isShowingPlantUI then
+                isShowingPlantUI = false
+                Frame.Show_Val.Value = false
+                Frame.Visible = false
+                currentPlant = nil
+                StopAllRainbowTweens()
             end
-            return
         end
     end
 end)
 
-
-game:GetService("Players").LocalPlayer.PlayerScripts.PlantOutline.Enabled = false
-
--- Decompiled with Medal's Decompiler. (Modified by SignalHub)
--- Decompiled at: 7/1/2025, 9:39:13 PM
--- Cached decompilation
--- MODIFIED: Plant value now shows on hover regardless of inspection status
-
-local _ = game:GetService("UserInputService")
-local _ = game:GetService("CollectionService")
-local s_ReplicatedStorage_0 = game:GetService("ReplicatedStorage")
-local _ = game:GetService("TweenService")
-local s_RunService_0 = game:GetService("RunService")
-local s_ProximityPromptService_0 = game:GetService("ProximityPromptService")
-local v1 = require(s_ReplicatedStorage_0.Modules.MutationHandler)
-local v_u_2 = require(s_ReplicatedStorage_0.Modules.CalculatePlantValue)
-local v_u_3 = require(s_ReplicatedStorage_0.Comma_Module)
-local v_u_4 = game.Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("FruitMutation_UI"):WaitForChild("Frame")
-local v_u_5 = v_u_4:WaitForChild("FruitName")
-local v_u_6 = v_u_4:WaitForChild("FruitMutation")
-local v_u_7 = v_u_4:WaitForChild("FruitValue")
-s_ReplicatedStorage_0:WaitForChild("GameEvents")
-require(s_ReplicatedStorage_0.Modules.GetFarm)
-local v_u_8 = require(s_ReplicatedStorage_0.Data.SeedData)
-local v_u_9 = require(s_ReplicatedStorage_0.Data.EventGearData)
-require(s_ReplicatedStorage_0.Modules.PlantTraitsData)
-local v_u_10 = require(s_ReplicatedStorage_0.Item_Module)
-local l_CurrentCamera_0 = workspace.CurrentCamera
-local v_u_11 = game:GetService("Players").LocalPlayer.PlayerScripts.PlantOutline:WaitForChild("Highlight")
-local v_u_12 = nil
-local v_u_13 = v1:GetMutations()
-local function _(p14) --[[ Name: Color3ToHex ]] --[[ Line: 40 ]]
-    return string.format("#%02X%02X%02X", p14.R * 255, p14.G * 255, p14.B * 255);
-end;
-local v_u_15 = {}
-local function _(p_u_16, p_u_17, p_u_18) --[[ Name: StartRainbowTween ]] --[[ Line: 46 ]]
-    --[[ Upvalues: (copy 1): v_u_15, (copy 2): s_RunService_0 ]]
-    if v_u_15[p_u_16] then
-        v_u_15[p_u_16]:Disconnect()
-    end;
-    local v_u_19 = 0
-    v_u_15[p_u_16] = s_RunService_0.RenderStepped:Connect(function(p20) --[[ Line: 52 ]]
-        --[[ Upvalues: (ref 1): v_u_19, (copy 2): p_u_18, (copy 3): p_u_16, (copy 4): p_u_17 ]]
-        v_u_19 = (v_u_19 + p20 * 0.2) % 1
-        local v21 = Color3.fromHSV(v_u_19, 1, 1)
-        p_u_16.Text = p_u_17:gsub("\240\159\140\136", (string.format("<font color=\"#%s\">%s</font>", string.format("#%02X%02X%02X", v21.R * 255, v21.G * 255, v21.B * 255), p_u_18)))
-    end)
-end;
-local function _() --[[ Name: StopAllRainbowTweens ]] --[[ Line: 61 ]]
-    --[[ Upvalues: (copy 1): v_u_15 ]]
-    for _, v22 in pairs(v_u_15) do
-        v22:Disconnect()
-    end;
-    table.clear(v_u_15)
-end;
-s_ProximityPromptService_0.PromptShown:Connect(function(p23, _) --[[ Line: 69 ]]
-    --[[ Upvalues: (copy 1): v_u_15, (ref 2): v_u_12, (copy 3): v_u_11, (copy 4): v_u_4, (copy 5): v_u_8, (copy 6): v_u_9, (copy 7): v_u_10, (copy 8): v_u_5, (copy 9): s_RunService_0, (copy 10): v_u_2, (copy 11): v_u_3, (copy 12): v_u_7, (copy 13): v_u_13, (copy 14): v_u_6 ]]
-    local v24 = p23:FindFirstAncestorWhichIsA("Model")
-    if v24 and v24:HasTag("Harvestable") then
-        for _, v25 in pairs(v_u_15) do
-            v25:Disconnect()
-        end;
-        table.clear(v_u_15)
-        v_u_12 = v24
-        v_u_12:SetAttribute("IsOutlined", true)
-        if v_u_11.Adornee ~= v24 then
-            v_u_11.FillTransparency = 1
-        end;
-        v_u_11.Adornee = v24
-        v_u_4.Visible = true
-        local l_Name_0 = v24.Name
-        local v26 = v_u_8[l_Name_0] or v_u_9[l_Name_0]
-        if v26 then
-            v26 = v26.SeedRarity
-        end;
-        local v27
-        if v26 then
-            v27 = v_u_10.Return_Rarity_Data(v26)
-        else
-            v27 = v26
-        end;
-        if v26 == "Prismatic" then
-            v_u_5.Text = "\240\159\140\136"
-            local v_u_28 = v_u_5
-            if v_u_15[v_u_28] then
-                v_u_15[v_u_28]:Disconnect()
-            end;
-            local v_u_29 = 0
-            local v_u_30 = "\240\159\140\136"
-            v_u_15[v_u_28] = s_RunService_0.RenderStepped:Connect(function(p31) --[[ Line: 52 ]]
-                --[[ Upvalues: (ref 1): v_u_29, (copy 2): l_Name_0, (copy 3): v_u_28, (copy 4): v_u_30 ]]
-                v_u_29 = (v_u_29 + p31 * 0.2) % 1
-                local v32 = Color3.fromHSV(v_u_29, 1, 1)
-                v_u_28.Text = v_u_30:gsub("\240\159\140\136", (string.format("<font color=\"#%s\">%s</font>", string.format("#%02X%02X%02X", v32.R * 255, v32.G * 255, v32.B * 255), l_Name_0)))
-            end)
-        elseif v27 then
-            local v33 = v27[2]
-            v_u_5.Text = string.format("<font color=\"%s\">%s</font>", string.format("#%02X%02X%02X", v33.R * 255, v33.G * 255, v33.B * 255), l_Name_0)
-        else
-            v_u_5.Text = l_Name_0
-        end;
+-- Fruit proximity prompt UI
+ProximityPromptService.PromptShown:Connect(function(prompt, inputType)
+    local model = prompt:FindFirstAncestorWhichIsA("Model")
+    if model and model:HasTag("Harvestable") then
+        StopAllRainbowTweens()
+        currentFruit = model
+        currentFruit:SetAttribute("IsOutlined", true)
         
-        -- MODIFIED: Always show plant value on hover
-        v_u_7.Text = v_u_3.Comma((v_u_2(v24))) .. "\194\162"
-        v_u_7.Visible = true
+        if Highlight.Adornee ~= model then
+            Highlight.FillTransparency = 1
+        end
+        Highlight.Adornee = model
+        FruitMutationUI.Visible = true
         
-        local v34 = nil
-        local v35 = nil
-        local v36 = v24:FindFirstChild("Variant")
-        if v36 and v36:IsA("StringValue") then
-            local l_Value_0 = v36.Value
-            if l_Value_0 ~= "" and l_Value_0 ~= "Normal" then
-                v34 = l_Value_0
-                if l_Value_0 == "Rainbow" then
-                    v35 = nil
-                elseif l_Value_0 == "Gold" then
-                    v35 = "#FFD700"
-                else
-                    v35 = "#FFFFFF"
-                end;
-            end;
-        end;
-        local v37 = {}
-        for v38, v39 in pairs(v_u_13) do
-            if v24:GetAttribute(v38) then
-                local v40 = {
-                    ["Name"] = v38
-                }
-                local v41
-                if v39.Color then
-                    local l_Color_0 = v39.Color
-                    v41 = string.format("#%02X%02X%02X", l_Color_0.R * 255, l_Color_0.G * 255, l_Color_0.B * 255) or "#FFFFFF"
-                else
-                    v41 = "#FFFFFF"
-                end;
-                v40.Color = v41
-                table.insert(v37, v40)
-            end;
-        end;
-        local v42 = {}
-        if v34 then
-            if v34 == "Rainbow" then
-                table.insert(v42, "\240\159\140\136")
-            else
-                table.insert(v42, string.format("<font color=\"%s\">%s</font>", v35, v34))
-            end;
-        end;
-        for _, v43 in ipairs(v37) do
-            table.insert(v42, string.format("<font color=\"%s\">%s</font>", v43.Color, v43.Name))
-        end;
-        if #v42 > 0 then
-            local v_u_44 = table.concat(v42, " <font color=\"#FFFFFF\">+</font> ")
-            v_u_6.Text = v_u_44
-            v_u_6.Visible = true
-            if v34 == "Rainbow" then
-                local v_u_45 = v_u_6
-                if v_u_15[v_u_45] then
-                    v_u_15[v_u_45]:Disconnect()
-                end;
-                local v_u_46 = 0
-                local v_u_47 = "Rainbow"
-                v_u_15[v_u_45] = s_RunService_0.RenderStepped:Connect(function(p48) --[[ Line: 52 ]]
-                    --[[ Upvalues: (ref 1): v_u_46, (copy 2): v_u_47, (copy 3): v_u_45, (copy 4): v_u_44 ]]
-                    v_u_46 = (v_u_46 + p48 * 0.2) % 1
-                    local v49 = Color3.fromHSV(v_u_46, 1, 1)
-                    v_u_45.Text = v_u_44:gsub("\240\159\140\136", (string.format("<font color=\"#%s\">%s</font>", string.format("#%02X%02X%02X", v49.R * 255, v49.G * 255, v49.B * 255), v_u_47)))
-                end)
-            end;
+        local displayName = model.Name
+        SetupPlantName(FruitName, displayName, displayName)
+        
+        -- Always show plant value and weight for fruits
+        local fruitValue = CalculatePlantValue(model)
+        local fruitWeight = GetPlantWeight(model)
+        FruitValue.Text = CommaModule.Comma(fruitValue) .. "¢ • " .. CommaModule.Comma(fruitWeight) .. "kg"
+        FruitValue.Visible = true
+        
+        local variant, variantColor = GetVariantInfo(model)
+        local mutations = GetMutationInfo(model)
+        SetupMutationsText(FruitMutation, variant, variantColor, mutations)
+        
+        -- Set highlight color
+        if #mutations > 0 then
+            Highlight.FillColor = Color3.fromHex(mutations[1].Color)
+        elseif variantColor then
+            Highlight.FillColor = Color3.fromHex(variantColor)
         else
-            v_u_6.Visible = false
-        end;
-        if #v37 > 0 then
-            v_u_11.FillColor = Color3.fromHex(v37[1].Color)
-            return;
-        elseif v35 then
-            v_u_11.FillColor = Color3.fromHex(v35)
-        else
-            v_u_11.FillColor = Color3.new(1, 1, 1)
-        end;
-    else
-        return;
-    end;
+            Highlight.FillColor = Color3.new(1, 1, 1)
+        end
+        
+        isShowingFruitUI = true
+    end
 end)
-s_ProximityPromptService_0.PromptHidden:Connect(function(p50) --[[ Line: 185 ]]
-    --[[ Upvalues: (copy 1): v_u_11, (copy 2): v_u_4, (ref 3): v_u_12, (copy 4): v_u_15 ]]
-    local v51 = p50:FindFirstAncestorWhichIsA("Model")
-    if v51 and (v51:HasTag("Harvestable") and v_u_11.Adornee == v51) then
-        v_u_11.Adornee = nil
-        v_u_4.Visible = false
-        v_u_12:SetAttribute("IsOutlined", nil)
-        v_u_12 = nil
-        for _, v52 in pairs(v_u_15) do
-            v52:Disconnect()
-        end;
-        table.clear(v_u_15)
-    end;
+
+ProximityPromptService.PromptHidden:Connect(function(prompt)
+    local model = prompt:FindFirstAncestorWhichIsA("Model")
+    if model and model:HasTag("Harvestable") and Highlight.Adornee == model then
+        Highlight.Adornee = nil
+        FruitMutationUI.Visible = false
+        if currentFruit then
+            currentFruit:SetAttribute("IsOutlined", nil)
+        end
+        currentFruit = nil
+        StopAllRainbowTweens()
+        isShowingFruitUI = false
+    end
 end)
-s_RunService_0.RenderStepped:Connect(function() --[[ Line: 198 ]]
-    --[[ Upvalues: (ref 1): v_u_12, (copy 2): v_u_4, (copy 3): l_CurrentCamera_0 ]]
-    if not v_u_12 then
-        v_u_4.Visible = false
-        return;
-    end;
-    local v53 = nil
-    for _, v54 in v_u_12:GetDescendants() do
-        if v54:IsA("ProximityPrompt") and v54.Enabled then
-            v53 = v54
-            break;
-        end;
-    end;
-    if v53 and v53.Parent:IsA("BasePart") then
-        local v55, v56 = l_CurrentCamera_0:WorldToViewportPoint(v53.Parent.Position)
-        if v56 then
-            v_u_4.Position = UDim2.new(0, v55.X, 0, v55.Y + 50)
-            v_u_4.Visible = true
+
+-- Position fruit UI near proximity prompt
+RunService.RenderStepped:Connect(function()
+    if not currentFruit then
+        FruitMutationUI.Visible = false
+        return
+    end
+    
+    local prompt = nil
+    for _, descendant in currentFruit:GetDescendants() do
+        if descendant:IsA("ProximityPrompt") and descendant.Enabled then
+            prompt = descendant
+            break
+        end
+    end
+    
+    if prompt and prompt.Parent:IsA("BasePart") then
+        local screenPos, onScreen = CurrentCamera:WorldToViewportPoint(prompt.Parent.Position)
+        if onScreen then
+            FruitMutationUI.Position = UDim2.new(0, screenPos.X, 0, screenPos.Y + 50)
+            FruitMutationUI.Visible = true
         else
-            v_u_4.Visible = false
-        end;
+            FruitMutationUI.Visible = false
+        end
     else
-        v_u_4.Visible = false
-        return;
-    end;
+        FruitMutationUI.Visible = false
+    end
 end)
