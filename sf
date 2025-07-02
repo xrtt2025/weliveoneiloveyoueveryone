@@ -397,3 +397,227 @@ s_RunService_0.PostSimulation:Connect(function(p69)
         end
     end
 end)
+
+
+game:GetService("Players").LocalPlayer.PlayerScripts.PlantOutline.Enabled = false
+
+-- Decompiled with Medal's Decompiler. (Modified by SignalHub)
+-- Decompiled at: 7/1/2025, 9:39:13 PM
+-- Cached decompilation
+-- MODIFIED: Plant value now shows on hover regardless of inspection status
+
+local _ = game:GetService("UserInputService")
+local _ = game:GetService("CollectionService")
+local s_ReplicatedStorage_0 = game:GetService("ReplicatedStorage")
+local _ = game:GetService("TweenService")
+local s_RunService_0 = game:GetService("RunService")
+local s_ProximityPromptService_0 = game:GetService("ProximityPromptService")
+local v1 = require(s_ReplicatedStorage_0.Modules.MutationHandler)
+local v_u_2 = require(s_ReplicatedStorage_0.Modules.CalculatePlantValue)
+local v_u_3 = require(s_ReplicatedStorage_0.Comma_Module)
+local v_u_4 = game.Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("FruitMutation_UI"):WaitForChild("Frame")
+local v_u_5 = v_u_4:WaitForChild("FruitName")
+local v_u_6 = v_u_4:WaitForChild("FruitMutation")
+local v_u_7 = v_u_4:WaitForChild("FruitValue")
+s_ReplicatedStorage_0:WaitForChild("GameEvents")
+require(s_ReplicatedStorage_0.Modules.GetFarm)
+local v_u_8 = require(s_ReplicatedStorage_0.Data.SeedData)
+local v_u_9 = require(s_ReplicatedStorage_0.Data.EventGearData)
+require(s_ReplicatedStorage_0.Modules.PlantTraitsData)
+local v_u_10 = require(s_ReplicatedStorage_0.Item_Module)
+local l_CurrentCamera_0 = workspace.CurrentCamera
+local v_u_11 = game:GetService("Players").LocalPlayer.PlayerScripts.PlantOutline:WaitForChild("Highlight")
+local v_u_12 = nil
+local v_u_13 = v1:GetMutations()
+local function _(p14) --[[ Name: Color3ToHex ]] --[[ Line: 40 ]]
+    return string.format("#%02X%02X%02X", p14.R * 255, p14.G * 255, p14.B * 255);
+end;
+local v_u_15 = {}
+local function _(p_u_16, p_u_17, p_u_18) --[[ Name: StartRainbowTween ]] --[[ Line: 46 ]]
+    --[[ Upvalues: (copy 1): v_u_15, (copy 2): s_RunService_0 ]]
+    if v_u_15[p_u_16] then
+        v_u_15[p_u_16]:Disconnect()
+    end;
+    local v_u_19 = 0
+    v_u_15[p_u_16] = s_RunService_0.RenderStepped:Connect(function(p20) --[[ Line: 52 ]]
+        --[[ Upvalues: (ref 1): v_u_19, (copy 2): p_u_18, (copy 3): p_u_16, (copy 4): p_u_17 ]]
+        v_u_19 = (v_u_19 + p20 * 0.2) % 1
+        local v21 = Color3.fromHSV(v_u_19, 1, 1)
+        p_u_16.Text = p_u_17:gsub("\240\159\140\136", (string.format("<font color=\"#%s\">%s</font>", string.format("#%02X%02X%02X", v21.R * 255, v21.G * 255, v21.B * 255), p_u_18)))
+    end)
+end;
+local function _() --[[ Name: StopAllRainbowTweens ]] --[[ Line: 61 ]]
+    --[[ Upvalues: (copy 1): v_u_15 ]]
+    for _, v22 in pairs(v_u_15) do
+        v22:Disconnect()
+    end;
+    table.clear(v_u_15)
+end;
+s_ProximityPromptService_0.PromptShown:Connect(function(p23, _) --[[ Line: 69 ]]
+    --[[ Upvalues: (copy 1): v_u_15, (ref 2): v_u_12, (copy 3): v_u_11, (copy 4): v_u_4, (copy 5): v_u_8, (copy 6): v_u_9, (copy 7): v_u_10, (copy 8): v_u_5, (copy 9): s_RunService_0, (copy 10): v_u_2, (copy 11): v_u_3, (copy 12): v_u_7, (copy 13): v_u_13, (copy 14): v_u_6 ]]
+    local v24 = p23:FindFirstAncestorWhichIsA("Model")
+    if v24 and v24:HasTag("Harvestable") then
+        for _, v25 in pairs(v_u_15) do
+            v25:Disconnect()
+        end;
+        table.clear(v_u_15)
+        v_u_12 = v24
+        v_u_12:SetAttribute("IsOutlined", true)
+        if v_u_11.Adornee ~= v24 then
+            v_u_11.FillTransparency = 1
+        end;
+        v_u_11.Adornee = v24
+        v_u_4.Visible = true
+        local l_Name_0 = v24.Name
+        local v26 = v_u_8[l_Name_0] or v_u_9[l_Name_0]
+        if v26 then
+            v26 = v26.SeedRarity
+        end;
+        local v27
+        if v26 then
+            v27 = v_u_10.Return_Rarity_Data(v26)
+        else
+            v27 = v26
+        end;
+        if v26 == "Prismatic" then
+            v_u_5.Text = "\240\159\140\136"
+            local v_u_28 = v_u_5
+            if v_u_15[v_u_28] then
+                v_u_15[v_u_28]:Disconnect()
+            end;
+            local v_u_29 = 0
+            local v_u_30 = "\240\159\140\136"
+            v_u_15[v_u_28] = s_RunService_0.RenderStepped:Connect(function(p31) --[[ Line: 52 ]]
+                --[[ Upvalues: (ref 1): v_u_29, (copy 2): l_Name_0, (copy 3): v_u_28, (copy 4): v_u_30 ]]
+                v_u_29 = (v_u_29 + p31 * 0.2) % 1
+                local v32 = Color3.fromHSV(v_u_29, 1, 1)
+                v_u_28.Text = v_u_30:gsub("\240\159\140\136", (string.format("<font color=\"#%s\">%s</font>", string.format("#%02X%02X%02X", v32.R * 255, v32.G * 255, v32.B * 255), l_Name_0)))
+            end)
+        elseif v27 then
+            local v33 = v27[2]
+            v_u_5.Text = string.format("<font color=\"%s\">%s</font>", string.format("#%02X%02X%02X", v33.R * 255, v33.G * 255, v33.B * 255), l_Name_0)
+        else
+            v_u_5.Text = l_Name_0
+        end;
+        
+        -- MODIFIED: Always show plant value on hover
+        v_u_7.Text = v_u_3.Comma((v_u_2(v24))) .. "\194\162"
+        v_u_7.Visible = true
+        
+        local v34 = nil
+        local v35 = nil
+        local v36 = v24:FindFirstChild("Variant")
+        if v36 and v36:IsA("StringValue") then
+            local l_Value_0 = v36.Value
+            if l_Value_0 ~= "" and l_Value_0 ~= "Normal" then
+                v34 = l_Value_0
+                if l_Value_0 == "Rainbow" then
+                    v35 = nil
+                elseif l_Value_0 == "Gold" then
+                    v35 = "#FFD700"
+                else
+                    v35 = "#FFFFFF"
+                end;
+            end;
+        end;
+        local v37 = {}
+        for v38, v39 in pairs(v_u_13) do
+            if v24:GetAttribute(v38) then
+                local v40 = {
+                    ["Name"] = v38
+                }
+                local v41
+                if v39.Color then
+                    local l_Color_0 = v39.Color
+                    v41 = string.format("#%02X%02X%02X", l_Color_0.R * 255, l_Color_0.G * 255, l_Color_0.B * 255) or "#FFFFFF"
+                else
+                    v41 = "#FFFFFF"
+                end;
+                v40.Color = v41
+                table.insert(v37, v40)
+            end;
+        end;
+        local v42 = {}
+        if v34 then
+            if v34 == "Rainbow" then
+                table.insert(v42, "\240\159\140\136")
+            else
+                table.insert(v42, string.format("<font color=\"%s\">%s</font>", v35, v34))
+            end;
+        end;
+        for _, v43 in ipairs(v37) do
+            table.insert(v42, string.format("<font color=\"%s\">%s</font>", v43.Color, v43.Name))
+        end;
+        if #v42 > 0 then
+            local v_u_44 = table.concat(v42, " <font color=\"#FFFFFF\">+</font> ")
+            v_u_6.Text = v_u_44
+            v_u_6.Visible = true
+            if v34 == "Rainbow" then
+                local v_u_45 = v_u_6
+                if v_u_15[v_u_45] then
+                    v_u_15[v_u_45]:Disconnect()
+                end;
+                local v_u_46 = 0
+                local v_u_47 = "Rainbow"
+                v_u_15[v_u_45] = s_RunService_0.RenderStepped:Connect(function(p48) --[[ Line: 52 ]]
+                    --[[ Upvalues: (ref 1): v_u_46, (copy 2): v_u_47, (copy 3): v_u_45, (copy 4): v_u_44 ]]
+                    v_u_46 = (v_u_46 + p48 * 0.2) % 1
+                    local v49 = Color3.fromHSV(v_u_46, 1, 1)
+                    v_u_45.Text = v_u_44:gsub("\240\159\140\136", (string.format("<font color=\"#%s\">%s</font>", string.format("#%02X%02X%02X", v49.R * 255, v49.G * 255, v49.B * 255), v_u_47)))
+                end)
+            end;
+        else
+            v_u_6.Visible = false
+        end;
+        if #v37 > 0 then
+            v_u_11.FillColor = Color3.fromHex(v37[1].Color)
+            return;
+        elseif v35 then
+            v_u_11.FillColor = Color3.fromHex(v35)
+        else
+            v_u_11.FillColor = Color3.new(1, 1, 1)
+        end;
+    else
+        return;
+    end;
+end)
+s_ProximityPromptService_0.PromptHidden:Connect(function(p50) --[[ Line: 185 ]]
+    --[[ Upvalues: (copy 1): v_u_11, (copy 2): v_u_4, (ref 3): v_u_12, (copy 4): v_u_15 ]]
+    local v51 = p50:FindFirstAncestorWhichIsA("Model")
+    if v51 and (v51:HasTag("Harvestable") and v_u_11.Adornee == v51) then
+        v_u_11.Adornee = nil
+        v_u_4.Visible = false
+        v_u_12:SetAttribute("IsOutlined", nil)
+        v_u_12 = nil
+        for _, v52 in pairs(v_u_15) do
+            v52:Disconnect()
+        end;
+        table.clear(v_u_15)
+    end;
+end)
+s_RunService_0.RenderStepped:Connect(function() --[[ Line: 198 ]]
+    --[[ Upvalues: (ref 1): v_u_12, (copy 2): v_u_4, (copy 3): l_CurrentCamera_0 ]]
+    if not v_u_12 then
+        v_u_4.Visible = false
+        return;
+    end;
+    local v53 = nil
+    for _, v54 in v_u_12:GetDescendants() do
+        if v54:IsA("ProximityPrompt") and v54.Enabled then
+            v53 = v54
+            break;
+        end;
+    end;
+    if v53 and v53.Parent:IsA("BasePart") then
+        local v55, v56 = l_CurrentCamera_0:WorldToViewportPoint(v53.Parent.Position)
+        if v56 then
+            v_u_4.Position = UDim2.new(0, v55.X, 0, v55.Y + 50)
+            v_u_4.Visible = true
+        else
+            v_u_4.Visible = false
+        end;
+    else
+        v_u_4.Visible = false
+        return;
+    end;
+end)
