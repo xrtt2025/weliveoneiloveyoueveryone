@@ -14,6 +14,7 @@ otherfunc.checkEventStatus = function(eventList, ifEventActiveDoNotCollect)
     isEventActive = f
     return f
 end
+
 --======== [Refresh Fruits List Function] ======--
 otherfunc.refreshFruitsList = function(dropdown, player, functions)
     -- Get farm data
@@ -38,6 +39,322 @@ otherfunc.refreshFruitsList = function(dropdown, player, functions)
 
     table.sort(uniqueFruits)
     dropdown:Refresh(uniqueFruits)
+end
+
+--== [String Value Utility] ==--
+otherfunc.makeString = function(target)
+    local existing = target:FindFirstChild("Item_String")
+    if existing and existing.Value == target.Name then return end
+    if existing then existing:Destroy() end
+    local classValue = Instance.new("StringValue")
+    classValue.Name = "Item_String"
+    classValue.Value = target.Name
+    classValue.Parent = target
+end
+
+otherfunc.calculatePlantValueSafely = function(item, functions, modules)
+    otherfunc.makeString(item)
+    if not calculatePlantValue then
+        calculatePlantValue = functions.getModule(modules, "CalculatePlantValue")
+    end
+    local success, result = pcall(calculatePlantValue, item)
+    if success and result and typeof(result) == "number" and result > 0 then
+        return result
+    else
+        warn("Failed to calculate plant value for " .. item.Name .. ":", result)
+        return 0
+    end
+end
+
+otherfunc.processPlantItems = function(Plants_Physical, callback)
+    for _, plant in ipairs(Plants_Physical:GetChildren()) do
+        if plant:IsA("Model") then
+            local fruitsFolder = plant:FindFirstChild("Fruits")
+            if fruitsFolder then
+                for _, fruit in ipairs(fruitsFolder:GetChildren()) do
+                    local weight = fruit:FindFirstChild("Weight")
+                    if weight and typeof(weight.Value) == "number" then
+                        callback(fruit, "fruit")
+                    end
+                end
+            else
+                local weight = plant:FindFirstChild("Weight")
+                if weight and typeof(weight.Value) == "number" then
+                    callback(plant, "plant")
+                end
+            end
+        end
+    end
+end
+
+otherfunc.getMutations = function(item, functions)
+    local mutationFoundinthis = {}
+    local attrs = item:GetAttributes()
+    local Variant = item:FindFirstChild("Variant").Value
+    if Variant ~= "Normal" then
+        table.insert(mutationFoundinthis, Variant)
+    end
+    for attrName, attrValue in pairs(attrs) do
+        local attrLower = string.lower(attrName)
+        local isMutation = false
+        if type(functions.sortedMutations) == "table" then
+            for mutation, enabled in pairs(functions.sortedMutations) do
+                if enabled and attrLower == string.lower(mutation) then
+                    isMutation = true
+                    break
+                end
+            end
+            if not isMutation then
+                for _, mutation in ipairs(functions.sortedMutations) do
+                    if attrLower == string.lower(mutation) then
+                        isMutation = true
+                        break
+                    end
+                end
+            end
+        end
+        if isMutation then
+            table.insert(mutationFoundinthis, attrName)
+        end
+    end
+    return mutationFoundinthis
+end
+
+otherfunc.createFruitEsp = function(adornee, espConnectionsFruits)
+    task.spawn(function()
+        if adornee and adornee:IsA("Model") and not adornee.PrimaryPart then
+            adornee.PrimaryPart = adornee:FindFirstChildWhichIsA("BasePart")
+        end
+        if adornee and adornee.PrimaryPart then
+            local box = Instance.new("BoxHandleAdornment")
+            box.Name = "MutationESP"
+            box.Size = adornee:GetExtentsSize()
+            box.Adornee = adornee
+            box.AlwaysOnTop = true
+            box.ZIndex = 10
+            box.Color3 = Color3.new(1, 1, 1)
+            box.Transparency = 0.2
+            box.Parent = adornee
+            local connectionId = tostring(adornee)
+            local connection = adornee.AncestryChanged:Connect(function(_, parent)
+                if not parent then
+                    if box and box.Parent then box:Destroy() end
+                    if espConnectionsFruits[connectionId] then
+                        espConnectionsFruits[connectionId]:Disconnect()
+                        espConnectionsFruits[connectionId] = nil
+                    end
+                end
+            end)
+            espConnectionsFruits[connectionId] = connection
+            task.delay(20, function()
+                if box and box.Parent then
+                    box:Destroy()
+                end
+                if espConnectionsFruits[connectionId] then
+                    espConnectionsFruits[connectionId]:Disconnect()
+                    espConnectionsFruits[connectionId] = nil
+                end
+            end)
+        else
+            warn("ESP failed: invalid target.")
+        end
+    end)
+end
+
+otherfunc.collectItemsBatch = function(items, batchSize, ByteNetReliable, harvestBuffer)
+    batchSize = batchSize or 5
+    for i = 1, #items, batchSize do
+        local batch = {}
+        for j = i, math.min(i + batchSize - 1, #items) do
+            table.insert(batch, items[j])
+        end
+        if ByteNetReliable and ByteNetReliable:IsA("RemoteEvent") then
+            ByteNetReliable:FireServer(harvestBuffer, batch)
+        end
+        task.wait(0.1)
+    end
+end
+
+otherfunc.findMostExpensiveFruit = function(playerName, functions, modules)
+    local _, _, Plants_Physical, _ = functions.GetPlayerFarm(playerName)
+    if not Plants_Physical then return nil, 0 end
+    local mostExpensiveFruit = nil
+    local highestValue = 0
+    otherfunc.processPlantItems(Plants_Physical, function(item)
+        local plantValue = otherfunc.calculatePlantValueSafely(item, functions, modules)  --item, functions, modules
+        if plantValue > highestValue then
+            highestValue = plantValue
+            mostExpensiveFruit = item
+        end
+    end)
+    return mostExpensiveFruit, highestValue
+end
+
+otherfunc.calculateTotalPlotValue = function(playerName, functions, modules)
+    local _, _, Plants_Physical, _ = functions.GetPlayerFarm(playerName)
+    if not Plants_Physical then return 0, 0, {} end
+    local totalValue, fruitCount = 0, 0
+    local allFruits = {}
+    otherfunc.processPlantItems(Plants_Physical, function(item)
+        local plantValue = otherfunc.calculatePlantValueSafely(item, functions, modules)
+        if plantValue > 0 then
+            totalValue += plantValue
+            fruitCount += 1
+            table.insert(allFruits, item)
+        end
+    end)
+    return totalValue, fruitCount, allFruits
+end
+
+otherfunc._createFruitESP = function(model, weightValue, targetList, functions, modules, cores)
+    if not functions.runService:IsClient() then return end
+    local adorneePart = model:FindFirstChildWhichIsA("BasePart") or model.PrimaryPart
+    if not adorneePart or model:FindFirstChild("ESP_KG") then return end
+
+    local ModelName = model.Name
+    local mutationInfo = {}
+    local Variant = model:FindFirstChild("Variant").Value
+
+    if Variant ~= "Normal" then
+        table.insert(mutationInfo, Variant)
+    end
+
+    for _, mutationName in ipairs(functions.sortedMutations) do
+        if model:GetAttribute(mutationName) then
+            table.insert(mutationInfo, mutationName)
+        end
+    end
+
+
+    local plantValue = 0
+    local classValue = Instance.new("StringValue")
+    classValue.Name = "Item_String"
+    classValue.Value = ModelName
+    classValue.Parent = model
+    calculatePlantValue = functions.getModule(modules, "CalculatePlantValue")
+    local success, result = pcall(calculatePlantValue, model)
+    if success then
+        plantValue = result
+    else
+        warn("Failed to calculate plant value:", result)
+    end
+
+    local contentHeight = 25
+    local hasMutations = #mutationInfo > 0
+    local hasPrice = showPriceValue and plantValue > 0
+    if hasMutations then contentHeight += 20 end
+    if hasPrice then contentHeight += 15 end
+    contentHeight += 10
+
+    local contentWidth = (hasMutations or hasPrice) and 180 or 160
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_KG"
+    billboard.Adornee = adorneePart
+    billboard.Size = UDim2.new(0, contentWidth, 0, contentHeight)
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.AlwaysOnTop = true
+    billboard.LightInfluence = 0
+    billboard.Parent = model
+
+    local backgroundFrame = Instance.new("Frame")
+    backgroundFrame.Size = UDim2.new(1, 0, 1, 0)
+    backgroundFrame.BackgroundColor3 = Color3.fromRGB(41, 34, 0)
+    backgroundFrame.BackgroundTransparency = 0.2
+    backgroundFrame.BorderSizePixel = 0
+    backgroundFrame.Parent = billboard
+
+    Instance.new("UICorner", backgroundFrame).CornerRadius = UDim.new(0, 6)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(100, 100, 100)
+    stroke.Thickness = 1
+    stroke.Transparency = 0.5
+    stroke.Parent = backgroundFrame
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, -8, 0, 22)
+    nameLabel.Position = UDim2.new(0, 4, 0, 4)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 25)
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    nameLabel.TextSize = 13
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.Text = ModelName .. " " .. string.format("%.3f KG", weightValue.Value)
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.Parent = backgroundFrame
+
+    local currentYPos = 26
+    if hasMutations then
+        local mutationFrame = Instance.new("Frame")
+        mutationFrame.Size = UDim2.new(1, -8, 0, 18)
+        mutationFrame.Position = UDim2.new(0, 4, 0, currentYPos)
+        mutationFrame.BackgroundTransparency = 1
+        mutationFrame.Parent = backgroundFrame
+
+        local prefixLabel = Instance.new("TextLabel")
+        prefixLabel.Size = UDim2.new(0, 55, 1, 0)
+        prefixLabel.Position = UDim2.new(0, 0, 0, 0)
+        prefixLabel.BackgroundTransparency = 1
+        prefixLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+        prefixLabel.TextStrokeTransparency = 0
+        prefixLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        prefixLabel.TextSize = 11
+        prefixLabel.Font = Enum.Font.GothamBold
+        prefixLabel.Text = "mutations: "
+        prefixLabel.TextXAlignment = Enum.TextXAlignment.Left
+        prefixLabel.Parent = mutationFrame
+
+        local currentXPos = 55
+        for i, mutation in ipairs(mutationInfo) do
+            local displayText = mutation .. (i < #mutationInfo and ", " or "")
+            local mutationLabel = Instance.new("TextLabel")
+            mutationLabel.BackgroundTransparency = 1
+            mutationLabel.TextStrokeTransparency = 0
+            mutationLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            mutationLabel.TextSize = 11
+            mutationLabel.Font = Enum.Font.GothamBold
+            mutationLabel.TextXAlignment = Enum.TextXAlignment.Left
+            mutationLabel.TextColor3 = functions.mutationColors[mutation] or Color3.fromRGB(220, 220, 220)
+            mutationLabel.Text = displayText
+            local textWidth = #displayText * 5
+            mutationLabel.Size = UDim2.new(0, textWidth, 1, 0)
+            mutationLabel.Position = UDim2.new(0, currentXPos, 0, 0)
+            mutationLabel.Parent = mutationFrame
+            currentXPos += textWidth
+        end
+        currentYPos += 18
+    end
+
+    if hasPrice then
+        local priceFrame = Instance.new("Frame")
+        priceFrame.Size = UDim2.new(1, -8, 0, 13)
+        priceFrame.Position = UDim2.new(0, 4, 0, currentYPos)
+        priceFrame.BackgroundTransparency = 1
+        priceFrame.Parent = backgroundFrame
+
+        local iconImage = Instance.new("ImageLabel")
+        iconImage.Size = UDim2.new(0, 12, 0, 12)
+        iconImage.Position = UDim2.new(0, 0, 0, 0)
+        iconImage.BackgroundTransparency = 1
+        iconImage.Image = "rbxassetid://124850631192001"
+        iconImage.Parent = priceFrame
+
+        local priceLabel = Instance.new("TextLabel")
+        priceLabel.Size = UDim2.new(1, -16, 1, 0)
+        priceLabel.Position = UDim2.new(0, 16, 0, 0)
+        priceLabel.BackgroundTransparency = 1
+        priceLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+        priceLabel.TextStrokeTransparency = 0
+        priceLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        priceLabel.TextSize = 11
+        priceLabel.Font = Enum.Font.GothamBold
+        priceLabel.Text = cores.formatNumber(plantValue, true)
+        priceLabel.TextXAlignment = Enum.TextXAlignment.Left
+        priceLabel.Parent = priceFrame
+    end
+
+    table.insert(targetList, billboard)
 end
 
 
