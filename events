@@ -2,7 +2,9 @@ local AutoCollector = {}
 AutoCollector.__index = AutoCollector
 
 local ByteNetReliable = game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable")
-local harvestBuffer   = buffer.fromstring("\1\1\0\1")
+-- Note: buffer.fromstring is not available in Lua 5.1, you'll need to handle this differently
+local harvestBuffer = buffer.fromstring("\1\1\0\1")
+--local harvestBuffer = "\1\1\0\1"  -- Direct string representation
 
 function AutoCollector:new(config)
     local instance = {
@@ -19,26 +21,27 @@ function AutoCollector:collectTargets()
     while self.isRunning do
         -- Handle event pausing
         if self:handleEventPause() then
-            goto continue
-        end
-
-        if not self.isRunning then break end
-
-        -- Get collection queue based on collection type
-        local collectionQueue = self:buildCollectionQueue()
-        
-        if #collectionQueue == 0 then
-            if self.config.onEmptyQueue then
-                self.config.onEmptyQueue()
-            end
-            task.wait(2)
+            -- Using if/else instead of goto (goto not available in Lua 5.1)
         else
-            -- Process the queue
-            self:processQueue(collectionQueue)
+            if not self.isRunning then break end
+
+            -- Get collection queue based on collection type
+            local collectionQueue = self:buildCollectionQueue()
+            
+            if #collectionQueue == 0 then
+                if self.config.onEmptyQueue then
+                    self.config.onEmptyQueue()
+                end
+                -- task.wait is not available in Lua 5.1, using wait instead
+                wait(2)
+            else
+                -- Process the queue
+                self:processQueue(collectionQueue)
+            end
         end
 
-        ::continue::
-        task.wait()
+        -- task.wait is not available in Lua 5.1, using wait instead
+        wait()
     end
     
     self.thread = nil
@@ -53,7 +56,7 @@ function AutoCollector:handleEventPause()
         end
         
         while checkEventStatus() and self.isRunning do
-            task.wait(1)
+            wait(1)
         end
         
         if self.isRunning then
@@ -70,7 +73,10 @@ function AutoCollector:buildCollectionQueue()
     local collectionQueue = {}
     local _, _, Plants_Physical, _ = functions.GetPlayerFarm(localPlayer.Name)
     
-    for _, plant in ipairs(Plants_Physical:GetChildren()) do
+    -- Using numeric for loop instead of ipairs for better Lua 5.1 compatibility
+    local children = Plants_Physical:GetChildren()
+    for i = 1, #children do
+        local plant = children[i]
         if not self.isRunning then break end
         
         if plant:IsA("Model") then
@@ -87,7 +93,9 @@ function AutoCollector:processPlant(plant, collectionQueue)
     
     if fruitsFolder then
         -- Process fruits in the plant
-        for _, fruit in ipairs(fruitsFolder:GetChildren()) do
+        local fruits = fruitsFolder:GetChildren()
+        for i = 1, #fruits do
+            local fruit = fruits[i]
             if not self.isRunning then break end
             
             if self:shouldCollectTarget(fruit, plant) then
@@ -105,14 +113,15 @@ end
 
 -- Process the collection queue
 function AutoCollector:processQueue(collectionQueue)
-    for _, target in ipairs(collectionQueue) do
+    for i = 1, #collectionQueue do
+        local target = collectionQueue[i]
         if not self.isRunning or checkEventStatus() then break end
         
         pcall(function()
             ByteNetReliable:FireServer(harvestBuffer, {target})
         end)
         
-        task.wait(AutoFarmSpeedGlobal)
+        wait(AutoFarmSpeedGlobal)
     end
 end
 
@@ -128,9 +137,11 @@ function AutoCollector:start()
     end
     
     if not self.thread then
-        self.thread = task.spawn(function()
+        -- task.spawn is not available in Lua 5.1, using coroutine instead
+        self.thread = coroutine.create(function()
             self:collectTargets()
         end)
+        coroutine.resume(self.thread)
     end
 end
 
@@ -175,7 +186,15 @@ function SelectedFruitCollector:shouldCollectTarget(target, plant)
     if #targetFruits == 0 then return false end
     
     local plantName = plant.Name:lower()
-    local isTarget = table.find(targetFruits, plantName)
+    local isTarget = false
+    
+    -- table.find is not available in Lua 5.1, using manual search
+    for i = 1, #targetFruits do
+        if targetFruits[i] == plantName then
+            isTarget = true
+            break
+        end
+    end
     
     if not isTarget then return false end
     
@@ -208,3 +227,10 @@ function NonMutatedCollector:shouldCollectTarget(target, plant)
     
     return not hasMutation and not isFavorited
 end
+
+-- Return the module
+return {
+    AutoCollector = AutoCollector,
+    SelectedFruitCollector = SelectedFruitCollector,
+    NonMutatedCollector = NonMutatedCollector
+}
