@@ -99,7 +99,7 @@ otherfunctions.specialMutations = function(enabledMutations, ignoreMutation, fun
 end
 
 --======== [Collection Loop] ======--
-otherfunctions.runCollectionLoop = function(config)
+otherfunctions.runCollectionLoop = function(config, cores, ByteNetReliable)
     local eventPausedNotified = false
     while config.isRunning() do
         if config.checkEventStatus and config.checkEventStatus() then
@@ -124,7 +124,7 @@ otherfunctions.runCollectionLoop = function(config)
             end
             task.wait(2)
         else
-            otherfunctions.processTargets(targets, config)
+            otherfunctions.processTargets(targets, config, cores, ByteNetReliable)
         end
         task.wait()
     end
@@ -153,7 +153,7 @@ otherfunctions.getCollectionTargets = function(config)
 end
 
 --======== [Target Processor] ======--
-otherfunctions.processTargets = function(targets, config)
+otherfunctions.processTargets = function(targets, config, cores, ByteNetReliable)
     for _, target in ipairs(targets) do
         if not config.isRunning() or (config.checkEventStatus and config.checkEventStatus()) then break end
         local success = pcall(function()
@@ -202,14 +202,14 @@ otherfunctions.createCollectionTask = function(taskType, params, functions)
 end
 
 --======== [Collection Start Wrapper] ======--
-otherfunctions.startCollection = function(taskType, params, functions)
+otherfunctions.startCollection = function(taskType, params, functions, cores, ByteNetReliable)
     local config = otherfunctions.createCollectionTask(taskType, params, functions)
     if params.async then
         task.spawn(function()
-            otherfunctions.runCollectionLoop(config)
+            otherfunctions.runCollectionLoop(config, cores, ByteNetReliable)
         end)
     else
-        otherfunctions.runCollectionLoop(config)
+        otherfunctions.runCollectionLoop(config, cores, ByteNetReliable)
     end
 end
 
