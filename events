@@ -1,10 +1,10 @@
--- AutoFarm Functions Module
--- This module contains all the core functions for the auto farm system
+-- AutoFarm Core Functions
+-- This contains all the core logic and functions
 
-local AutoFarmFunctions = {}
+local AutoFarmCore = {}
 
--- Event Management Functions
-function AutoFarmFunctions.createEventChecker(eventList, ifEventActiveDoNotCollect)
+-- Event Management
+function AutoFarmCore.createEventChecker(eventList, ifEventActiveDoNotCollect)
     local isEventActive = false
     local debounce = false
     
@@ -35,224 +35,207 @@ function AutoFarmFunctions.createEventChecker(eventList, ifEventActiveDoNotColle
     return checkEventStatus, checkEventStatusDebounced
 end
 
--- Fruit Collection Functions
-function AutoFarmFunctions.createFruitCollector(functions, localPlayer, cores, ByteNetReliable, harvestBuffer, AutoFarmSpeedGlobal)
-    local function collectSelectedFruit(autoFarmRunning, fruitDropdown, checkEventStatus, ignoreMutation)
-        local eventPausedNotified = false
-        
-        while autoFarmRunning() do
-            -- Wait for event to end if active
-            if checkEventStatus() then
-                if not eventPausedNotified then
-                    cores.notify("Paused: A selected event is active. Waiting...", 3, "triangle-alert")
-                    eventPausedNotified = true
-                end
-                while checkEventStatus() and autoFarmRunning() do
-                    task.wait(1)
-                end
-                if autoFarmRunning() then
-                    cores.notify("Resuming selected fruit collection - event ended", 2, "check")
-                    eventPausedNotified = false
-                end
-            end
-
-            if not autoFarmRunning() then break end
-
-            local targetFruits = functions.parseTargetFruits(fruitDropdown)
-            if #targetFruits == 0 then
-                cores.notify("No fruits selected", 3, "check")
-                task.wait(2)
-            else
-                -- Queue collection targets
-                local collectionQueue = {}
-                local _, _, Plants_Physical, _ = functions.GetPlayerFarm(localPlayer.Name)
-                
-                for _, plant in ipairs(Plants_Physical:GetChildren()) do
-                    if not autoFarmRunning() then break end
-
-                    local plantName = plant.Name:lower()
-                    local isTarget = table.find(targetFruits, plantName)
-                    local hasMutation = functions.hasAnyMutation(plant, ignoreMutation)
-                    local fruitsFolder = plant:FindFirstChild("Fruits")
-
-                    if isTarget then
-                        if fruitsFolder then
-                            for _, fruit in ipairs(fruitsFolder:GetChildren()) do
-                                if not functions.hasAnyMutation(fruit, ignoreMutation) and not fruit:GetAttribute("Favorited") then
-                                    table.insert(collectionQueue, fruit)
-                                end
-                            end
-                        elseif not hasMutation and not plant:GetAttribute("Favorited") then
-                            table.insert(collectionQueue, plant)
-                        end
-                    end
-                end
-
-                -- Process queue
-                for _, target in ipairs(collectionQueue) do
-                    if not autoFarmRunning() or checkEventStatus() then break end
-                    pcall(function()
-                        ByteNetReliable:FireServer(harvestBuffer, {target})
-                        cores.notify("Collected " .. target.Name, 1, "check")
-                    end)
-                    task.wait(AutoFarmSpeedGlobal)
-                end
-            end
-
-            task.wait()
-        end
-    end
+-- Fruit Collection
+function AutoFarmCore.collectSelectedFruit(autoFarmRunning, fruitDropdown, checkEventStatus, ignoreMutation, functions, localPlayer, cores, ByteNetReliable, harvestBuffer, AutoFarmSpeedGlobal)
+    local eventPausedNotified = false
     
-    return collectSelectedFruit
-end
-
--- Non-Mutated Collection Functions
-function AutoFarmFunctions.createNonMutatedCollector(functions, localPlayer, cores, ByteNetReliable, harvestBuffer, AutoFarmSpeedGlobal)
-    local function collectNoneMutated(runningCollectNoneMutated, checkEventStatus)
-        local eventPausedNotified = false
-
-        while runningCollectNoneMutated() do
-            -- Pause if an event is ongoing
-            if checkEventStatus() then
-                if not eventPausedNotified then
-                    cores.notify("Paused: A selected event is active. Waiting...", 3, "triangle-alert")
-                    eventPausedNotified = true
-                end
-                while checkEventStatus() and runningCollectNoneMutated() do
-                    task.wait(1)
-                end
-                if runningCollectNoneMutated() then
-                    cores.notify("Resuming auto collection - event ended", 2, "check")
-                    eventPausedNotified = false
-                end
+    while autoFarmRunning() do
+        -- Wait for event to end if active
+        if checkEventStatus() then
+            if not eventPausedNotified then
+                cores.notify("Paused: A selected event is active. Waiting...", 3, "triangle-alert")
+                eventPausedNotified = true
             end
+            while checkEventStatus() and autoFarmRunning() do
+                task.wait(1)
+            end
+            if autoFarmRunning() then
+                cores.notify("Resuming selected fruit collection - event ended", 2, "check")
+                eventPausedNotified = false
+            end
+        end
 
-            if not runningCollectNoneMutated() then break end
+        if not autoFarmRunning() then break end
 
-            -- Queue valid targets
+        local targetFruits = functions.parseTargetFruits(fruitDropdown)
+        if #targetFruits == 0 then
+            cores.notify("No fruits selected", 3, "check")
+            task.wait(2)
+        else
+            -- Queue collection targets
             local collectionQueue = {}
             local _, _, Plants_Physical, _ = functions.GetPlayerFarm(localPlayer.Name)
-
+            
             for _, plant in ipairs(Plants_Physical:GetChildren()) do
-                if not runningCollectNoneMutated() then break end
-                if plant:IsA("Model") then
-                    local fruitsFolder = plant:FindFirstChild("Fruits")
+                if not autoFarmRunning() then break end
+
+                local plantName = plant.Name:lower()
+                local isTarget = table.find(targetFruits, plantName)
+                local hasMutation = functions.hasAnyMutation(plant, ignoreMutation)
+                local fruitsFolder = plant:FindFirstChild("Fruits")
+
+                if isTarget then
                     if fruitsFolder then
                         for _, fruit in ipairs(fruitsFolder:GetChildren()) do
-                            if not runningCollectNoneMutated() then break end
-                            if not functions.hasAnyMutation(fruit, functions.sortedMutations)
-                                and not fruit:GetAttribute("Favorited") then
+                            if not functions.hasAnyMutation(fruit, ignoreMutation) and not fruit:GetAttribute("Favorited") then
                                 table.insert(collectionQueue, fruit)
                             end
                         end
-                    elseif not functions.hasAnyMutation(plant, functions.sortedMutations)
-                        and not plant:GetAttribute("Favorited") then
+                    elseif not hasMutation and not plant:GetAttribute("Favorited") then
                         table.insert(collectionQueue, plant)
                     end
                 end
             end
 
-            -- Process queued items
+            -- Process queue
             for _, target in ipairs(collectionQueue) do
-                if not runningCollectNoneMutated() or checkEventStatus() then break end
+                if not autoFarmRunning() or checkEventStatus() then break end
                 pcall(function()
                     ByteNetReliable:FireServer(harvestBuffer, {target})
                     cores.notify("Collected " .. target.Name, 1, "check")
                 end)
                 task.wait(AutoFarmSpeedGlobal)
             end
-
-            task.wait()
         end
+
+        task.wait()
     end
-    
-    return collectNoneMutated
 end
 
--- Mutation Collection Functions
-function AutoFarmFunctions.createMutationCollector(functions, localPlayer, cores, ByteNetReliable, harvestBuffer, AutoFarmSpeedGlobal)
-    local function collectSpecificMutations(enabledMutations, ignoreMutation, checkEventStatus)
-        local function shouldCollect()
-            for _, enabled in pairs(enabledMutations) do
-                if enabled then return true end
-            end
-            return false
-        end
-        
-        local function collectspecial()
-            if not shouldCollect() then return end
+-- Non-Mutated Collection
+function AutoFarmCore.collectNoneMutated(runningCollectNoneMutated, checkEventStatus, functions, localPlayer, cores, ByteNetReliable, harvestBuffer, AutoFarmSpeedGlobal)
+    local eventPausedNotified = false
 
-            local fruitsToCollect = {}
-            local success, Plants_Physical = pcall(function()
-                local _, _, plants, _ = functions.GetPlayerFarm(localPlayer.Name)
-                return plants
+    while runningCollectNoneMutated() do
+        -- Pause if an event is ongoing
+        if checkEventStatus() then
+            if not eventPausedNotified then
+                cores.notify("Paused: A selected event is active. Waiting...", 3, "triangle-alert")
+                eventPausedNotified = true
+            end
+            while checkEventStatus() and runningCollectNoneMutated() do
+                task.wait(1)
+            end
+            if runningCollectNoneMutated() then
+                cores.notify("Resuming auto collection - event ended", 2, "check")
+                eventPausedNotified = false
+            end
+        end
+
+        if not runningCollectNoneMutated() then break end
+
+        -- Queue valid targets
+        local collectionQueue = {}
+        local _, _, Plants_Physical, _ = functions.GetPlayerFarm(localPlayer.Name)
+
+        for _, plant in ipairs(Plants_Physical:GetChildren()) do
+            if not runningCollectNoneMutated() then break end
+            if plant:IsA("Model") then
+                local fruitsFolder = plant:FindFirstChild("Fruits")
+                if fruitsFolder then
+                    for _, fruit in ipairs(fruitsFolder:GetChildren()) do
+                        if not runningCollectNoneMutated() then break end
+                        if not functions.hasAnyMutation(fruit, functions.sortedMutations)
+                            and not fruit:GetAttribute("Favorited") then
+                            table.insert(collectionQueue, fruit)
+                        end
+                    end
+                elseif not functions.hasAnyMutation(plant, functions.sortedMutations)
+                    and not plant:GetAttribute("Favorited") then
+                    table.insert(collectionQueue, plant)
+                end
+            end
+        end
+
+        -- Process queued items
+        for _, target in ipairs(collectionQueue) do
+            if not runningCollectNoneMutated() or checkEventStatus() then break end
+            pcall(function()
+                ByteNetReliable:FireServer(harvestBuffer, {target})
+                cores.notify("Collected " .. target.Name, 1, "check")
             end)
-            
-            if not success or not Plants_Physical then
-                print("Failed to get player farm")
-                return
-            end
-
-            for _, treeModel in ipairs(Plants_Physical:GetChildren()) do
-                if treeModel:IsA("Model") then
-                    local fruitsFolder = treeModel:FindFirstChild("Fruits")
-
-                    local added = false
-                    if fruitsFolder then
-                        for _, fruit in ipairs(fruitsFolder:GetChildren()) do
-                            if fruit:IsA("Model") and 
-                               functions.hasAnyMutation(fruit, enabledMutations) and 
-                               not fruit:GetAttribute("Favorited") and 
-                               not functions.hasAnyMutation(fruit, ignoreMutation) then
-                                table.insert(fruitsToCollect, fruit)
-                                added = true
-                                break
-                            end
-                        end
-                    end
-
-                    if not added and 
-                       functions.hasAnyMutation(treeModel, enabledMutations) and 
-                       not treeModel:GetAttribute("Favorited") and 
-                       not functions.hasAnyMutation(treeModel, ignoreMutation) then
-                        table.insert(fruitsToCollect, treeModel)
-                    end
-                end
-            end
-
-            for _, item in ipairs(fruitsToCollect) do
-                if not shouldCollect() or (checkEventStatus and checkEventStatus()) then 
-                    break 
-                end
-
-                if not functions.hasAnyMutation(item, ignoreMutation) then
-                    local success = pcall(function()
-                        if ByteNetReliable and ByteNetReliable:IsA("RemoteEvent") then
-                            ByteNetReliable:FireServer(harvestBuffer, { item })
-                            if cores.notify then
-                                cores.notify("Collected " .. item.Name, 1, "check")
-                            end
-                        end
-                    end)
-                end
-                
-                if not success then
-                    print("Failed to collect:", item.Name)
-                end
-                
-                task.wait(AutoFarmSpeedGlobal) 
-            end
+            task.wait(AutoFarmSpeedGlobal)
         end
-        
-        return shouldCollect, collectspecial
+
+        task.wait()
     end
-    
-    return collectSpecificMutations
 end
 
--- Thread Management Functions
-function AutoFarmFunctions.createThreadManager(cores)
-    local function updateAutoCollectThread(shouldCollect, collectspecial, checkEventStatus, isCollectingSpecial, collectMutationThread)
+-- Mutation Collection
+function AutoFarmCore.collectSpecificMutations(enabledMutations, ignoreMutation, checkEventStatus, functions, localPlayer, cores, ByteNetReliable, harvestBuffer, AutoFarmSpeedGlobal)
+    local function shouldCollect()
+        for _, enabled in pairs(enabledMutations) do
+            if enabled then return true end
+        end
+        return false
+    end
+    
+    local function collectspecial()
+        if not shouldCollect() then return end
+
+        local fruitsToCollect = {}
+        local success, Plants_Physical = pcall(function()
+            local _, _, plants, _ = functions.GetPlayerFarm(localPlayer.Name)
+            return plants
+        end)
+        
+        if not success or not Plants_Physical then
+            print("Failed to get player farm")
+            return
+        end
+
+        for _, treeModel in ipairs(Plants_Physical:GetChildren()) do
+            if treeModel:IsA("Model") then
+                local fruitsFolder = treeModel:FindFirstChild("Fruits")
+
+                local added = false
+                if fruitsFolder then
+                    for _, fruit in ipairs(fruitsFolder:GetChildren()) do
+                        if fruit:IsA("Model") and 
+                           functions.hasAnyMutation(fruit, enabledMutations) and 
+                           not fruit:GetAttribute("Favorited") and 
+                           not functions.hasAnyMutation(fruit, ignoreMutation) then
+                            table.insert(fruitsToCollect, fruit)
+                            added = true
+                            break
+                        end
+                    end
+                end
+
+                if not added and 
+                   functions.hasAnyMutation(treeModel, enabledMutations) and 
+                   not treeModel:GetAttribute("Favorited") and 
+                   not functions.hasAnyMutation(treeModel, ignoreMutation) then
+                    table.insert(fruitsToCollect, treeModel)
+                end
+            end
+        end
+
+        for _, item in ipairs(fruitsToCollect) do
+            if not shouldCollect() or (checkEventStatus and checkEventStatus()) then 
+                break 
+            end
+
+            if not functions.hasAnyMutation(item, ignoreMutation) then
+                local success = pcall(function()
+                    if ByteNetReliable and ByteNetReliable:IsA("RemoteEvent") then
+                        ByteNetReliable:FireServer(harvestBuffer, { item })
+                        if cores.notify then
+                            cores.notify("Collected " .. item.Name, 1, "check")
+                        end
+                    end
+                end)
+            end
+            
+            if not success then
+                print("Failed to collect:", item.Name)
+            end
+            
+            task.wait(AutoFarmSpeedGlobal) 
+        end
+    end
+    
+    local function manageMutationCollection(isCollectingSpecial, collectMutationThread)
         if shouldCollect() and not isCollectingSpecial[1] then
             isCollectingSpecial[1] = true
             if cores.notify then
@@ -311,11 +294,11 @@ function AutoFarmFunctions.createThreadManager(cores)
         end
     end
     
-    return updateAutoCollectThread
+    return shouldCollect, collectspecial, manageMutationCollection
 end
 
 -- Utility Functions
-function AutoFarmFunctions.refreshFruitsList(dropdown, playerName, functions)
+function AutoFarmCore.refreshFruitsList(dropdown, playerName, functions)
     local _, _, Plants_Physical, _ = functions.GetPlayerFarm(playerName)
     local fruitList = {}
     
@@ -337,7 +320,7 @@ function AutoFarmFunctions.refreshFruitsList(dropdown, playerName, functions)
     dropdown:Refresh(fruitList)
 end
 
-function AutoFarmFunctions.getEventFrameNames(eventList)
+function AutoFarmCore.getEventFrameNames(eventList)
     local eventFrameNames = {}
     
     for _, frame in ipairs(eventList:FindFirstChild("List"):GetChildren()) do
@@ -351,4 +334,27 @@ function AutoFarmFunctions.getEventFrameNames(eventList)
     return eventFrameNames
 end
 
-return AutoFarmFunctions
+function AutoFarmCore.selectAllFruits(functions, localPlayer, fruitDropdown)
+    local _, _, Plants_Physical, _ = functions.GetPlayerFarm(localPlayer.Name)
+    local fruitList = {}
+    
+    if not Plants_Physical then
+        warn("Plants_Physical folder not found")
+        return
+    end
+    
+    for _, v in ipairs(Plants_Physical:GetChildren()) do
+        if v:IsA("Model") then
+            local name = v.Name
+            if not table.find(fruitList, name) then
+                table.insert(fruitList, name)
+            end
+        end
+    end
+    
+    table.sort(fruitList)
+    fruitDropdown:Select(fruitList)
+    fruitDropdown:Refresh(fruitList)
+end
+
+return AutoFarmCore
