@@ -359,5 +359,38 @@ end
 
 
 
+otherfunc._disconnectAllFruitListeners = function(fruitWeightConnections)
+    for _, conn in ipairs(fruitWeightConnections) do
+        if conn.Connected then
+            conn:Disconnect()
+        end
+    end
+    table.clear(fruitWeightConnections)
+end
 
+otherfunc._scanAndPrintFruitIfLight = function(fruitInstance, selectedWeightLimit, gameEvents, cores)
+    local weightAttr = fruitInstance:FindFirstChild("Weight")
+    if weightAttr and weightAttr:IsA("NumberValue") then
+        if weightAttr.Value < selectedWeightLimit then
+            cores.equipToolByKeyword("Shovel")
+            print("[Below Limit]:", fruitInstance:GetFullName(), "| Weight:", weightAttr.Value)
+            local targetPart = fruitInstance:FindFirstChildWhichIsA("BasePart", true)
+            if targetPart then
+                local success, err = pcall(function()
+                    gameEvents.Remove_Item:FireServer(targetPart)
+                end)
+
+                if success then
+                    cores.notify("Destroyed: " .. fruitInstance.Name, 1, "check")
+                else
+                    warn("❌ Failed to destroy " .. fruitInstance.Name, err)
+                    cores.notify("Failed: " .. fruitInstance.Name, 1, "x")
+                end
+            else
+                warn("No valid part found in: " .. fruitInstance.Name)
+            end
+
+        end
+    end
+end
 return otherfunc
