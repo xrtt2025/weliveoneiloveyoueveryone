@@ -34,6 +34,7 @@ end
 
 --======== [Filter: Selected Fruits] ======--
 otherfunctions.selectedFruits = function(targetFruits, ignoreMutation, functions)
+    print("[DEBUG] selectedFruits started")
     return function(plant, fruitsFolder)
         local targets = {}
         local plantName = plant.Name:lower()
@@ -55,6 +56,7 @@ end
 
 --======== [Filter: Non-Mutated Fruits] ======--
 otherfunctions.nonMutated = function(ignoreMutation, functions)
+    print("[DEBUG] nonMutated started")
     return function(plant, fruitsFolder)
         local targets = {}
         if fruitsFolder then
@@ -74,6 +76,7 @@ end
 
 --======== [Filter: Special Mutations] ======--
 otherfunctions.specialMutations = function(enabledMutations, ignoreMutation, functions)
+    print("[DEBUG] specialMutations started")
     return function(plant, fruitsFolder)
         local targets = {}
         local added = false
@@ -100,6 +103,7 @@ end
 
 --======== [Target Scanner] ======--
 otherfunctions.getCollectionTargets = function(config, functions)
+    print("[DEBUG] getCollectionTargets started")
     local targets = {}
     local success, Plants_Physical = pcall(function()
         local _, _, plants, _ = functions.GetPlayerFarm(localPlayer.Name)
@@ -119,9 +123,26 @@ otherfunctions.getCollectionTargets = function(config, functions)
     return targets
 end
 
+--======== [Target Processor] ======--
+otherfunctions.processTargets = function(targets, config, cores, ByteNetReliable)
+    print("[DEBUG] processTargets started")
+    for _, target in ipairs(targets) do
+        if not config.isRunning() or (config.checkEventStatus and config.checkEventStatus()) then break end
+        local success = pcall(function()
+            ByteNetReliable:FireServer(harvestBuffer, {target})
+            cores.notify("Collected " .. target.Name, 1, "check")
+        end)
+        if not success and config.onError then
+            config.onError(target)
+        end
+        task.wait(config.speed or AutoFarmSpeedGlobal)
+    end
+end
+
 --======== [Collection Loop] ======--
 otherfunctions.runCollectionLoop = function(config, cores, ByteNetReliable, functions)
     local eventPausedNotified = false
+    print("[DEBUG] runCollectionLoop started")
     while config.isRunning() do
         if config.checkEventStatus and config.checkEventStatus() then
             if not eventPausedNotified then
@@ -153,23 +174,10 @@ otherfunctions.runCollectionLoop = function(config, cores, ByteNetReliable, func
 end
 
 
---======== [Target Processor] ======--
-otherfunctions.processTargets = function(targets, config, cores, ByteNetReliable)
-    for _, target in ipairs(targets) do
-        if not config.isRunning() or (config.checkEventStatus and config.checkEventStatus()) then break end
-        local success = pcall(function()
-            ByteNetReliable:FireServer(harvestBuffer, {target})
-            cores.notify("Collected " .. target.Name, 1, "check")
-        end)
-        if not success and config.onError then
-            config.onError(target)
-        end
-        task.wait(config.speed or AutoFarmSpeedGlobal)
-    end
-end
 
 --======== [Collection Task Factory] ======--
 otherfunctions.createCollectionTask = function(taskType, params, functions)
+    print("[DEBUG] createCollectionTask started")
     local config = {
         speed = params.speed or AutoFarmSpeedGlobal,
         checkEventStatus = params.checkEventStatus,
@@ -204,6 +212,7 @@ end
 
 --======== [Collection Start Wrapper] ======--
 otherfunctions.startCollection = function(taskType, params, functions, cores, ByteNetReliable)
+    print("[DEBUG] startCollection started")
     local config = otherfunctions.createCollectionTask(taskType, params, functions)
     if params.async then
         task.spawn(function()
