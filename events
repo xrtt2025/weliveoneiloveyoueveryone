@@ -40,67 +40,6 @@ otherfunc.refreshFruitsList = function(dropdown, player, functions)
     dropdown:Refresh(uniqueFruits)
 end
 
-otherfunc.collectSelectedFruit = function(autoFarmRunning, checkEventStatus, cores, functions, localPlayer, ignoreMutation, collectFruitThread)
-    local eventPausedNotified = false
-    while autoFarmRunning do
-        if checkEventStatus() then
-            if not eventPausedNotified then
-                cores.notify("Paused: A selected event is active. Waiting...", 3, "triangle-alert")
-                eventPausedNotified = true
-            end
-            while checkEventStatus() and autoFarmRunning do
-                task.wait(1)
-            end
-            if autoFarmRunning then
-                cores.notify("Resuming selected fruit collection - event ended", 2, "check")
-                eventPausedNotified = false
-            end
-        end
-
-        if not autoFarmRunning then break end
-
-        local targetFruits = functions.parseTargetFruits(fruitDropdown)
-        if #targetFruits == 0 then
-            cores.notify("No fruits selected", 3, "check")
-            task.wait(2)
-        else
-            local collectionQueue = {}
-            local _, _, Plants_Physical, _ = functions.GetPlayerFarm(localPlayer.Name)
-            for _, plant in ipairs(Plants_Physical:GetChildren()) do
-                if not autoFarmRunning then break end
-
-                local plantName = plant.Name:lower()
-                local isTarget = table.find(targetFruits, plantName)
-                local hasMutation = functions.hasAnyMutation(plant, ignoreMutation)
-                local fruitsFolder = plant:FindFirstChild("Fruits")
-
-                if isTarget then
-                    if fruitsFolder then
-                        for _, fruit in ipairs(fruitsFolder:GetChildren()) do
-                            if not functions.hasAnyMutation(fruit, ignoreMutation) and not fruit:GetAttribute("Favorited") then
-                                table.insert(collectionQueue, fruit)
-                            end
-                        end
-                    elseif not hasMutation and not plant:GetAttribute("Favorited") then
-                        table.insert(collectionQueue, plant)
-                    end
-                end
-            end
-
-            for _, target in ipairs(collectionQueue) do
-                if not autoFarmRunning or checkEventStatus() then break end
-                pcall(function()
-                    ByteNetReliable:FireServer(harvestBuffer, {target})
-                    cores.notify("Collected " .. target.Name, 1, "check")
-                end)
-                task.wait(AutoFarmSpeedGlobal)
-            end
-        end
-
-        task.wait()
-    end
-    collectFruitThread = nil
-end
 
 
 
