@@ -368,33 +368,54 @@ otherfunc._disconnectAllFruitListeners = function(fruitWeightConnections)
     table.clear(fruitWeightConnections)
 end
 
-otherfunc._scanAndPrintFruitIfLight = function(fruitInstance, selectedWeightLimit, gameEvents, cores)
+otherfunc._scanAndPrintFruitIfLight = function(fruitInstance, selectedWeightLimit, gameEvents, cores, fruitWeightConnections)
+    if fruitInstance:GetAttribute("Favorited") then return end
+
     local weightAttr = fruitInstance:FindFirstChild("Weight")
     if weightAttr and weightAttr:IsA("NumberValue") then
-        local fruitWeight = tonumber(weightAttr.Value)
-        local limit = tonumber(selectedWeightLimit)
+        local function tryRemove()
+            local fruitWeight = tonumber(weightAttr.Value)
+            local limit = tonumber(selectedWeightLimit)
 
-        if fruitWeight and limit and fruitWeight < limit then
-            cores.equipToolByKeyword("Shovel")
-            print("[Below Limit]:", fruitInstance:GetFullName(), "| Weight:", fruitWeight)
-            
-            local targetPart = fruitInstance:FindFirstChildWhichIsA("BasePart", true)
-            if targetPart then
-                local success, err = pcall(function()
-                    gameEvents.Remove_Item:FireServer(targetPart)
-                end)
+            if fruitWeight and limit and fruitWeight < limit then
+                cores.equipToolByKeyword("Shovel")
+                print("[Below Limit]:", fruitInstance.Name, "| Weight:", fruitWeight, "| Limit:", limit)
 
-                if success then
-                    cores.notify("Destroyed: " .. fruitInstance.Name, 1, "check")
+                local targetPart = fruitInstance:FindFirstChildWhichIsA("BasePart", true)
+                if targetPart then
+                    local success, err = pcall(function()
+                        gameEvents.Remove_Item:FireServer(targetPart)
+                    end)
+
+                    if success then
+                        cores.notify("Destroyed: " .. fruitInstance.Name, 1, "check")
+                    else
+                        warn("❌ Failed to destroy " .. fruitInstance.Name, err)
+                        cores.notify("Failed: " .. fruitInstance.Name, 1, "x")
+                    end
                 else
-                    warn("❌ Failed to destroy " .. fruitInstance.Name, err)
-                    cores.notify("Failed: " .. fruitInstance.Name, 1, "x")
+                    warn("No valid part found in: " .. fruitInstance.Name)
                 end
-            else
-                warn("No valid part found in: " .. fruitInstance.Name)
             end
         end
+
+        -- Initial check
+        tryRemove()
+
+        -- Continuous monitoring
+        local conn
+        conn = weightAttr.Changed:Connect(function()
+            tryRemove()
+
+            -- If above limit, disconnect listener
+            if tonumber(weightAttr.Value) >= tonumber(selectedWeightLimit) then
+                if conn.Connected then conn:Disconnect() end
+            end
+        end)
+
+        table.insert(fruitWeightConnections, conn)
     end
 end
+
 
 return otherfunc
