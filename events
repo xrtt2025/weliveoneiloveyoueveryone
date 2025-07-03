@@ -1,0 +1,210 @@
+local AutoCollector = {}
+AutoCollector.__index = AutoCollector
+
+local ByteNetReliable = game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable")
+local harvestBuffer   = buffer.fromstring("\1\1\0\1")
+
+function AutoCollector:new(config)
+    local instance = {
+        isRunning = false,
+        thread = nil,
+        config = config or {},
+        eventPausedNotified = false
+    }
+    setmetatable(instance, AutoCollector)
+    return instance
+end
+
+function AutoCollector:collectTargets()
+    while self.isRunning do
+        -- Handle event pausing
+        if self:handleEventPause() then
+            goto continue
+        end
+
+        if not self.isRunning then break end
+
+        -- Get collection queue based on collection type
+        local collectionQueue = self:buildCollectionQueue()
+        
+        if #collectionQueue == 0 then
+            if self.config.onEmptyQueue then
+                self.config.onEmptyQueue()
+            end
+            task.wait(2)
+        else
+            -- Process the queue
+            self:processQueue(collectionQueue)
+        end
+
+        ::continue::
+        task.wait()
+    end
+    
+    self.thread = nil
+end
+
+-- Handle event pausing logic
+function AutoCollector:handleEventPause()
+    if checkEventStatus() then
+        if not self.eventPausedNotified then
+            warn("Paused: A selected event is active. Waiting...")
+            self.eventPausedNotified = true
+        end
+        
+        while checkEventStatus() and self.isRunning do
+            task.wait(1)
+        end
+        
+        if self.isRunning then
+            print("Resuming auto collection - event ended")
+            self.eventPausedNotified = false
+        end
+        return true
+    end
+    return false
+end
+
+-- Build collection queue based on collection type
+function AutoCollector:buildCollectionQueue()
+    local collectionQueue = {}
+    local _, _, Plants_Physical, _ = functions.GetPlayerFarm(localPlayer.Name)
+    
+    for _, plant in ipairs(Plants_Physical:GetChildren()) do
+        if not self.isRunning then break end
+        
+        if plant:IsA("Model") then
+            self:processPlant(plant, collectionQueue)
+        end
+    end
+    
+    return collectionQueue
+end
+
+-- Process individual plant based on collection type
+function AutoCollector:processPlant(plant, collectionQueue)
+    local fruitsFolder = plant:FindFirstChild("Fruits")
+    
+    if fruitsFolder then
+        -- Process fruits in the plant
+        for _, fruit in ipairs(fruitsFolder:GetChildren()) do
+            if not self.isRunning then break end
+            
+            if self:shouldCollectTarget(fruit, plant) then
+                table.insert(collectionQueue, fruit)
+            end
+        end
+    elseif self:shouldCollectTarget(plant, plant) then
+        table.insert(collectionQueue, plant)
+    end
+end
+
+function AutoCollector:shouldCollectTarget(target, plant)
+    return not target:GetAttribute("Favorited")
+end
+
+-- Process the collection queue
+function AutoCollector:processQueue(collectionQueue)
+    for _, target in ipairs(collectionQueue) do
+        if not self.isRunning or checkEventStatus() then break end
+        
+        pcall(function()
+            ByteNetReliable:FireServer(harvestBuffer, {target})
+        end)
+        
+        task.wait(AutoFarmSpeedGlobal)
+    end
+end
+
+-- Start the auto-collector
+function AutoCollector:start()
+    if self.isRunning then return end
+    
+    self.isRunning = true
+    self.eventPausedNotified = false
+    
+    if self.config.onStart then
+        self.config.onStart()
+    end
+    
+    if not self.thread then
+        self.thread = task.spawn(function()
+            self:collectTargets()
+        end)
+    end
+end
+
+-- Stop the auto-collector
+function AutoCollector:stop()
+    self.isRunning = false
+    
+    if self.config.onStop then
+        self.config.onStop()
+    end
+end
+
+-- Check if collector is running
+function AutoCollector:isActive()
+    return self.isRunning
+end
+
+-- Specific implementation for Selected Fruits Collection
+local SelectedFruitCollector = setmetatable({}, {__index = AutoCollector})
+
+function SelectedFruitCollector:new(fruitDropdown, ignoreMutation)
+    local instance = AutoCollector:new({
+        onStart = function()
+            print("Auto Farm Enabled")
+        end,
+        onStop = function()
+            print("Auto Farm Disabled")
+        end,
+        onEmptyQueue = function()
+            warn("No fruits selected")
+        end
+    })
+    
+    instance.fruitDropdown = fruitDropdown
+    instance.ignoreMutation = ignoreMutation
+    setmetatable(instance, {__index = SelectedFruitCollector})
+    return instance
+end
+
+function SelectedFruitCollector:shouldCollectTarget(target, plant)
+    local targetFruits = functions.parseTargetFruits(self.fruitDropdown)
+    if #targetFruits == 0 then return false end
+    
+    local plantName = plant.Name:lower()
+    local isTarget = table.find(targetFruits, plantName)
+    
+    if not isTarget then return false end
+    
+    local hasMutation = functions.hasAnyMutation(target, self.ignoreMutation)
+    local isFavorited = target:GetAttribute("Favorited")
+    
+    return not hasMutation and not isFavorited
+end
+
+-- Specific implementation for Non-Mutated Collection
+local NonMutatedCollector = setmetatable({}, {__index = AutoCollector})
+
+function NonMutatedCollector:new()
+    local instance = AutoCollector:new({
+        onStart = function()
+            print("Auto-collecting non-mutated fruits now")
+        end,
+        onStop = function()
+            print("Auto collection disabled.")
+        end
+    })
+    
+    setmetatable(instance, {__index = NonMutatedCollector})
+    return instance
+end
+
+function NonMutatedCollector:shouldCollectTarget(target, plant)
+    local hasMutation = functions.hasAnyMutation(target, functions.sortedMutations)
+    local isFavorited = target:GetAttribute("Favorited")
+    
+    return not hasMutation and not isFavorited
+end
