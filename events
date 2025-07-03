@@ -17,9 +17,24 @@ end
 
 --======== [Refresh Fruits List Function] ======--
 otherfunctions.refreshFruitsList = function(dropdown, player, functions)
-    local _, _, Plants_Physical, _ = functions.GetPlayerFarm(player)
+    print("DEBUG :: dropdown", dropdown)
+    print("DEBUG :: player", player)
+    print("DEBUG :: functions", functions)
+
+    local a, b, Plants_Physical, d = functions.GetPlayerFarm(player)
+    print("DEBUG :: Plants_Physical", Plants_Physical)
+
+    if not Plants_Physical then
+        warn("Plants_Physical folder not found")
+        return
+    end
+
+    if not dropdown then
+        warn("Dropdown is nil!")
+        return
+    end
+
     local uniqueFruits = {}
-    if not Plants_Physical then warn("Plants_Physical folder not found") return end
     for _, plant in ipairs(Plants_Physical:GetChildren()) do
         if plant:IsA("Model") then
             local name = plant.Name
@@ -28,9 +43,12 @@ otherfunctions.refreshFruitsList = function(dropdown, player, functions)
             end
         end
     end
+
     table.sort(uniqueFruits)
+    print("DEBUG :: Refreshing dropdown with:", uniqueFruits)
     dropdown:Refresh(uniqueFruits)
 end
+
 
 --======== [Filter: Selected Fruits] ======--
 otherfunctions.selectedFruits = function(targetFruits, ignoreMutation, functions)
