@@ -102,7 +102,7 @@ otherfunctions.specialMutations = function(enabledMutations, ignoreMutation, fun
 end
 
 --======== [Target Scanner] ======--
-otherfunctions.getCollectionTargets = function(config, functions)
+otherfunctions.getCollectionTargets = function(config, functions, localPlayer)
     print("[DEBUG] getCollectionTargets started")
     local targets = {}
     local success, Plants_Physical = pcall(function()
@@ -140,7 +140,7 @@ otherfunctions.processTargets = function(targets, config, cores, ByteNetReliable
 end
 
 --======== [Collection Loop] ======--
-otherfunctions.runCollectionLoop = function(config, cores, ByteNetReliable, functions)
+otherfunctions.runCollectionLoop = function(config, cores, ByteNetReliable, functions, localPlayer)
     local eventPausedNotified = false
     print("[DEBUG] runCollectionLoop started")
     while config.isRunning() do
@@ -159,7 +159,7 @@ otherfunctions.runCollectionLoop = function(config, cores, ByteNetReliable, func
         end
 
         if not config.isRunning() then break end
-        local targets = otherfunctions.getCollectionTargets(config, functions)
+        local targets = otherfunctions.getCollectionTargets(config, functions, localPlayer)
         if #targets == 0 then
             if config.emptyMessage then
                 cores.notify(config.emptyMessage, 3, "check")
@@ -211,15 +211,15 @@ otherfunctions.createCollectionTask = function(taskType, params, functions)
 end
 
 --======== [Collection Start Wrapper] ======--
-otherfunctions.startCollection = function(taskType, params, functions, cores, ByteNetReliable)
+otherfunctions.startCollection = function(taskType, params, functions, cores, ByteNetReliable, localPlayer)
     print("[DEBUG] startCollection started")
     local config = otherfunctions.createCollectionTask(taskType, params, functions)
     if params.async then
         task.spawn(function()
-            otherfunctions.runCollectionLoop(config, cores, ByteNetReliable, functions)
+            otherfunctions.runCollectionLoop(config, cores, ByteNetReliable, functions, localPlayer)
         end)
     else
-        otherfunctions.runCollectionLoop(config, cores, ByteNetReliable, functions)
+        otherfunctions.runCollectionLoop(config, cores, ByteNetReliable, functions, localPlayer)
     end
 end
 
