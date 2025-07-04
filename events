@@ -368,32 +368,32 @@ otherfunc._disconnectAllFruitListeners = function(fruitWeightConnections)
     table.clear(fruitWeightConnections)
 end
 
-    otherfunc._scanAndPrintFruitIfLight = function(fruitInstance, selectedWeightLimit, gameEvents, cores)
-        if fruitInstance:GetAttribute("Favorited") then return end
-        local weightAttr = fruitInstance:FindFirstChild("Weight")
-        if weightAttr and weightAttr:IsA("NumberValue") then
-            local fruitWeight = tonumber(weightAttr.Value)
-            local limit = tonumber(selectedWeightLimit)
-            if fruitWeight and limit and fruitWeight < limit then
-                cores.equipToolByKeyword("Shovel")
-                print("[Below Limit]:", fruitInstance.Name, "| Weight:", fruitWeight, "| Limit:", limit)
-                local targetPart = fruitInstance:FindFirstChildWhichIsA("BasePart", true)
-                if targetPart then
-                    local success, err = pcall(function()
-                        gameEvents.Remove_Item:FireServer(targetPart)
-                    end)
-                    if success then
-                        cores.notify("Destroyed: " .. fruitInstance.Name, 1, "check")
-                    else
-                        warn("❌ Failed to destroy " .. fruitInstance.Name, err)
-                        cores.notify("Failed: " .. fruitInstance.Name, 1, "x")
-                    end
+otherfunc._scanAndPrintFruitIfLight = function(fruitInstance, selectedWeightLimit, gameEvents, cores)
+    if fruitInstance:GetAttribute("Favorited") then return end
+    local weightAttr = fruitInstance:FindFirstChild("Weight")
+    if weightAttr and weightAttr:IsA("NumberValue") then
+        local fruitWeight = tonumber(weightAttr.Value)
+        local limit = tonumber(selectedWeightLimit)
+        if fruitWeight and limit and fruitWeight < limit then
+            cores.equipToolByKeyword("Shovel")
+            print("[Below Limit]:", fruitInstance.Name, "| Weight:", fruitWeight, "| Limit:", limit)
+            local targetPart = fruitInstance:FindFirstChildWhichIsA("BasePart", true)
+            if targetPart then
+                local success, err = pcall(function()
+                    gameEvents.Remove_Item:FireServer(targetPart)
+                end)
+                if success then
+                    cores.notify("Destroyed: " .. fruitInstance.Name, 1, "check")
                 else
-                    warn("No valid part found in: " .. fruitInstance.Name)
+                    warn("❌ Failed to destroy " .. fruitInstance.Name, err)
+                    cores.notify("Failed: " .. fruitInstance.Name, 1, "x")
                 end
+            else
+                warn("No valid part found in: " .. fruitInstance.Name)
             end
         end
     end
+end
 
 
 
