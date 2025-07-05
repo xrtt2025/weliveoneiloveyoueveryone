@@ -1,0 +1,291 @@
+-- Modules/VisualPlayerUtils.lua
+local module = {}
+
+-- Required services and dependencies
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+-- References (these should be injected on init)
+local functions, cores, myConfig, espContainer
+
+-- Constants
+local ORIGINAL_SETTINGS = {
+    Lighting = {},
+    Terrain = {}
+}
+local lightingTweens = {}
+local espToggle = false
+local flinging = false
+local dir = 0.1
+local infiniteJumpStarted = false
+local antiflingConnection = nil
+
+-- ================================
+-- === Utility Functions =========
+-- ================================
+
+local function stopLightingTweens()
+    for _, tween in pairs(lightingTweens) do
+        if tween then tween:Cancel() end
+    end
+    lightingTweens = {}
+end
+
+local function safeExecute(func, errorMessage)
+    local success, err = pcall(func)
+    if not success and errorMessage then
+        cores.notify(errorMessage .. ": " .. tostring(err), 3, "circle-x")
+    end
+    return success
+end
+
+local function applyLightingSettings(settings, duration)
+    stopLightingTweens()
+
+    local tweenInfo = TweenInfo.new(duration or 2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+
+    for property, targetValue in pairs(settings) do
+        local tween = functions.tweenService:Create(functions.lighting, tweenInfo, {[property] = targetValue})
+        lightingTweens[property] = tween
+        tween:Play()
+    end
+end
+
+local function restoreLightingSettings()
+    applyLightingSettings(ORIGINAL_SETTINGS.Lighting)
+end
+
+local function applyTerrainSettings(settings)
+    if not functions.terrain then return end
+    for prop, val in pairs(settings) do
+        functions.terrain[prop] = val
+    end
+end
+
+local function createToggle(tab, config)
+    local toggle = tab:Toggle({
+        Title = config.title,
+        Default = config.default or false,
+        Callback = config.callback
+    })
+
+    if config.register then
+        myConfig:Register(config.register, toggle)
+    end
+
+    return toggle
+end
+
+-- ================================
+-- === Feature Initialization ====
+-- ================================
+
+function module.init(initData)
+    functions = initData.functions
+    cores = initData.cores
+    myConfig = initData.myConfig
+    espContainer = initData.espContainer
+
+    -- Save lighting and terrain settings for restoration
+    ORIGINAL_SETTINGS.Lighting = {
+        Ambient = functions.lighting.Ambient,
+        Brightness = functions.lighting.Brightness,
+        ClockTime = functions.lighting.ClockTime,
+        FogEnd = functions.lighting.FogEnd,
+        OutdoorAmbient = functions.lighting.OutdoorAmbient,
+        GlobalShadows = functions.lighting.GlobalShadows,
+    }
+
+    ORIGINAL_SETTINGS.Terrain = {
+        WaterWaveSize = functions.terrain and functions.terrain.WaterWaveSize or 0,
+        WaterWaveSpeed = functions.terrain and functions.terrain.WaterWaveSpeed or 0,
+        WaterReflectance = functions.terrain and functions.terrain.WaterReflectance or 0,
+        WaterTransparency = functions.terrain and functions.terrain.WaterTransparency or 0,
+    }
+end
+
+-- ================================
+-- === Public Features ===========
+-- ================================
+
+function module.addLightingToggles(tab)
+    createToggle(tab, {
+        title = "Night Mode",
+        register = "NightMode",
+        callback = function(value)
+            if value then
+                applyLightingSettings({
+                    Ambient = Color3.fromRGB(70, 70, 100),
+                    OutdoorAmbient = Color3.fromRGB(90, 90, 120),
+                    Brightness = 30,
+                    ClockTime = 20,
+                    FogEnd = 500
+                })
+            else
+                restoreLightingSettings()
+            end
+        end
+    })
+
+    createToggle(tab, {
+        title = "Fullbright",
+        callback = function(value)
+            if value then
+                local fb = {
+                    Brightness = 2,
+                    ClockTime = 12,
+                    FogEnd = 100000,
+                    Ambient = Color3.fromRGB(255, 255, 255),
+                    OutdoorAmbient = Color3.fromRGB(255, 255, 255),
+                }
+
+                for prop, val in pairs(fb) do
+                    functions.lighting[prop] = val
+                end
+
+                functions.addConnection("fullbrightconnection", RunService.Heartbeat:Connect(function()
+                    for prop, val in pairs(fb) do
+                        functions.lighting[prop] = val
+                    end
+                end))
+            else
+                functions.cleanupConnections("fullbrightconnection")
+                restoreLightingSettings()
+            end
+        end
+    })
+end
+
+function module.addFPSToggle(tab)
+    createToggle(tab, {
+        title = "FPS Boost",
+        callback = function(value)
+            if value then
+                functions.lighting.GlobalShadows = false
+                functions.lighting.FogEnd = 100000
+                applyTerrainSettings({
+                    WaterWaveSize = 0,
+                    WaterWaveSpeed = 0,
+                    WaterReflectance = 0,
+                    WaterTransparency = 1
+                })
+            else
+                functions.lighting.GlobalShadows = ORIGINAL_SETTINGS.Lighting.GlobalShadows
+                functions.lighting.FogEnd = ORIGINAL_SETTINGS.Lighting.FogEnd
+                applyTerrainSettings(ORIGINAL_SETTINGS.Terrain)
+            end
+        end
+    })
+end
+
+function module.addESP(tab)
+    createToggle(tab, {
+        title = "ESP",
+        register = "PlayerEsp",
+        callback = function(value)
+            espToggle = value
+
+            functions.cleanupConnections("espconnection")
+
+            if value then
+                functions.addConnection("espconnection", RunService.Heartbeat:Connect(function()
+                    for _, h in ipairs(espContainer:GetChildren()) do
+                        h.Enabled = true
+                    end
+                end))
+            else
+                for _, h in ipairs(espContainer:GetChildren()) do
+                    h.Enabled = false
+                end
+            end
+        end
+    })
+end
+
+function module.addWalkFling(tab)
+    createToggle(tab, {
+        title = "Walk Fling",
+        callback = function(value)
+            if value then
+                if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+                flinging = true
+
+                functions.addConnection("walkflingconnection", RunService.Heartbeat:Connect(function()
+                    local root = character:FindFirstChild("HumanoidRootPart")
+                    if not root then flinging = false return end
+
+                    local v = root.Velocity
+                    root.Velocity = v * 10000 + Vector3.new(0, 10000, 0)
+                    RunService.RenderStepped:Wait()
+                    root.Velocity = v + Vector3.new(0, dir, 0)
+                    dir *= -1
+                end))
+            else
+                flinging = false
+                functions.cleanupConnections("walkflingconnection")
+            end
+        end
+    })
+end
+
+function module.addAntiFling(tab)
+    createToggle(tab, {
+        title = "Antifling",
+        callback = function(val)
+            _G.AntiFling = val
+            if val then
+                antiflingConnection = RunService.Stepped:Connect(function()
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p ~= LocalPlayer and p.Character then
+                            for _, d in pairs(p.Character:GetDescendants()) do
+                                if d:IsA("BasePart") and d.CanCollide then
+                                    d.CanCollide = false
+                                end
+                            end
+                        end
+                    end
+                end)
+            else
+                if antiflingConnection then antiflingConnection:Disconnect() end
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p.Character then
+                        for _, d in pairs(p.Character:GetDescendants()) do
+                            if d:IsA("BasePart") and not d.CanCollide then
+                                d.CanCollide = true
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    }):Set(true)
+end
+
+function module.addInfiniteJump(tab)
+    createToggle(tab, {
+        title = "Infinite Jump",
+        callback = function(value)
+            if value and not infiniteJumpStarted then
+                infiniteJumpStarted = true
+                functions.addConnection("infinitejumpconnection", functions.userInputService.InputBegan:Connect(function(k, gp)
+                    if gp then return end
+                    if k.KeyCode == Enum.KeyCode.Space then
+                        local h = character:FindFirstChildOfClass("Humanoid")
+                        if h then
+                            h:ChangeState(Enum.HumanoidStateType.Jumping)
+                            task.wait()
+                            h:ChangeState(Enum.HumanoidStateType.Seated)
+                        end
+                    end
+                end))
+            else
+                infiniteJumpStarted = false
+                functions.cleanupConnections("infinitejumpconnection")
+            end
+        end
+    })
+end
+
+return module
